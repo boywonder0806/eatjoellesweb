@@ -1,0 +1,34 @@
+{
+  "admin": {
+    "username": "admin",
+    "passwordHash": ""
+  },
+  "menu": [
+    { "id": 1,  "category": "starters",  "name": "Bruschetta al Pomodoro", "description": "Grilled bread, fresh tomatoes, basil, extra virgin olive oil", "price": "$12",          "sort_order": 0 },
+    { "id": 2,  "category": "starters",  "name": "Burrata & Prosciutto",   "description": "Creamy burrata, cured prosciutto, honey drizzle, arugula",           "price": "$18",          "sort_order": 1 },
+    { "id": 3,  "category": "starters",  "name": "Soup of the Day",        "description": "Ask your server for today's selection",                              "price": "$10",          "sort_order": 2 },
+    { "id": 4,  "category": "starters",  "name": "Caesar Salad",           "description": "Romaine, house Caesar dressing, shaved parmesan, croutons",          "price": "$14",          "sort_order": 3 },
+    { "id": 5,  "category": "mains",     "name": "Filet Mignon",           "description": "8oz tenderloin, truffle butter, roasted potatoes, seasonal veg",     "price": "$48",          "sort_order": 0 },
+    { "id": 6,  "category": "mains",     "name": "Pan-Seared Salmon",      "description": "Atlantic salmon, lemon beurre blanc, asparagus, wild rice",          "price": "$36",          "sort_order": 1 },
+    { "id": 7,  "category": "mains",     "name": "Mushroom Risotto",       "description": "Arborio rice, wild mushrooms, parmesan, white wine, truffle oil",    "price": "$28",          "sort_order": 2 },
+    { "id": 8,  "category": "mains",     "name": "Roast Half Chicken",     "description": "Free-range chicken, herb jus, garlic mash, green beans",             "price": "$32",          "sort_order": 3 },
+    { "id": 9,  "category": "desserts",  "name": "Tiramisu",               "description": "Classic Italian, espresso-soaked ladyfingers, mascarpone cream",     "price": "$12",          "sort_order": 0 },
+    { "id": 10, "category": "desserts",  "name": "Chocolate Fondant",      "description": "Warm dark chocolate cake, vanilla bean ice cream",                   "price": "$14",          "sort_order": 1 },
+    { "id": 11, "category": "desserts",  "name": "Crème Brûlée",           "description": "Classic vanilla custard, caramelized sugar crust, fresh berries",   "price": "$11",          "sort_order": 2 },
+    { "id": 12, "category": "desserts",  "name": "Cheese Board",           "description": "Selection of artisan cheeses, fruit, nuts, crackers",               "price": "$18",          "sort_order": 3 },
+    { "id": 13, "category": "drinks",    "name": "House Red Wine",         "description": "Ask your server for current selection by the glass or bottle",       "price": "$12 / glass",  "sort_order": 0 },
+    { "id": 14, "category": "drinks",    "name": "House White Wine",       "description": "Crisp and refreshing, glass or bottle",                             "price": "$12 / glass",  "sort_order": 1 },
+    { "id": 15, "category": "drinks",    "name": "Craft Cocktails",        "description": "Ask your server about our seasonal cocktail menu",                   "price": "$14",          "sort_order": 2 },
+    { "id": 16, "category": "drinks",    "name": "Non-Alcoholic",          "description": "Sparkling water, fresh juices, specialty sodas, coffee, tea",       "price": "From $4",      "sort_order": 3 }
+  ],
+  "hours": [
+    { "id": 1, "days": "Monday \u2013 Thursday", "time_range": "5:00 PM \u2013 10:00 PM", "sort_order": 0 },
+    { "id": 2, "days": "Friday \u2013 Saturday",  "time_range": "5:00 PM \u2013 11:00 PM", "sort_order": 1 },
+    { "id": 3, "days": "Sunday",                  "time_range": "4:00 PM \u2013 9:00 PM",  "sort_order": 2 }
+  ],
+  "settings": {
+    "address": "123 Main Street, Your City, ST 00000",
+    "phone": "(555) 123-4567",
+    "email": "hello@joellslounge.com"
+  }
+}

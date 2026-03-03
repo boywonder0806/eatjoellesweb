@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Joell's Lounge</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav" id="navbar">
+    <div class="nav__logo">Joell's Lounge</div>
+    <button class="nav__toggle" id="navToggle" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav__links" id="navLinks">
+      <li><a href="#about">About</a></li>
+      <li><a href="#menu">Menu</a></li>
+      <li><a href="#hours">Hours</a></li>
+      <li><a href="#contact">Contact</a></li>
+      <li><a href="#contact" class="nav__cta">Reserve a Table</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero" id="home">
+    <div class="hero__overlay"></div>
+    <div class="hero__content">
+      <p class="hero__tagline">Fine dining, warm atmosphere</p>
+      <h1 class="hero__title">Joell's Lounge</h1>
+      <p class="hero__sub">Fresh ingredients. Handcrafted dishes. Unforgettable moments.</p>
+      <div class="hero__actions">
+        <a href="#menu" class="btn btn--primary">View Menu</a>
+        <a href="#contact" class="btn btn--outline">Reserve a Table</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="section about" id="about">
+    <div class="container about__grid">
+      <div class="about__text">
+        <span class="section__label">Our Story</span>
+        <h2 class="section__title">A passion for food, <br/>a love for community</h2>
+        <p>Welcome to Joell's Lounge — where every dish is made with care and every guest feels at home. Founded with a simple belief that great food brings people together, we craft seasonal menus using the finest local ingredients.</p>
+        <p>Whether you're joining us for a quiet dinner or a special celebration, we're here to make it memorable.</p>
+      </div>
+      <div class="about__image">
+        <img
+          src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80"
+          alt="Joell's Lounge interior"
+          class="about__img"
+        />
+      </div>
+    </div>
+  </section>
+
+  <!-- MENU -->
+  <section class="section menu" id="menu">
+    <div class="container">
+      <span class="section__label">What We Serve</span>
+      <h2 class="section__title">Our Menu</h2>
+
+      <div class="menu__tabs" id="menuTabs">
+        <button class="menu__tab active" data-tab="starters">Starters</button>
+        <button class="menu__tab" data-tab="mains">Mains</button>
+        <button class="menu__tab" data-tab="desserts">Desserts</button>
+        <button class="menu__tab" data-tab="drinks">Drinks</button>
+      </div>
+
+      <!-- Starters -->
+      <div class="menu__panel active" id="tab-starters">
+        <div class="menu__grid" id="grid-starters"></div>
+      </div>
+
+      <!-- Mains -->
+      <div class="menu__panel" id="tab-mains">
+        <div class="menu__grid" id="grid-mains"></div>
+      </div>
+
+      <!-- Desserts -->
+      <div class="menu__panel" id="tab-desserts">
+        <div class="menu__grid" id="grid-desserts"></div>
+      </div>
+
+      <!-- Drinks -->
+      <div class="menu__panel" id="tab-drinks">
+        <div class="menu__grid" id="grid-drinks"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOURS -->
+  <section class="section hours" id="hours">
+    <div class="container hours__grid">
+      <div class="hours__text">
+        <span class="section__label">Visit Us</span>
+        <h2 class="section__title">Hours & Location</h2>
+        <div class="hours__table" id="hours-table"></div>
+        <div class="hours__address">
+          <p>📍 <span id="contact-address">123 Main Street, Your City, ST 00000</span></p>
+          <p>📞 <span id="contact-phone">(555) 123-4567</span></p>
+          <p>✉️ <span id="contact-email">hello@joellslounge.com</span></p>
+        </div>
+      </div>
+      <div class="hours__map">
+        <div class="hours__map-placeholder">
+          <span>🗺️ Embed your Google Map here</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT / RESERVATION -->
+  <section class="section contact" id="contact">
+    <div class="container contact__inner">
+      <span class="section__label">Get in Touch</span>
+      <h2 class="section__title">Reserve a Table</h2>
+      <p class="contact__sub">Book your table online or give us a call at <strong>(555) 123-4567</strong></p>
+
+      <form class="contact__form" id="reservationForm">
+        <div class="form__row">
+          <div class="form__group">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" name="name" placeholder="Your name" required />
+          </div>
+          <div class="form__group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="your@email.com" required />
+          </div>
+        </div>
+        <div class="form__row">
+          <div class="form__group">
+            <label for="phone">Phone</label>
+            <input type="tel" id="phone" name="phone" placeholder="(555) 000-0000" />
+          </div>
+          <div class="form__group">
+            <label for="guests">Guests</label>
+            <select id="guests" name="guests" required>
+              <option value="">Select party size</option>
+              <option value="1">1 person</option>
+              <option value="2">2 people</option>
+              <option value="3">3 people</option>
+              <option value="4">4 people</option>
+              <option value="5">5 people</option>
+              <option value="6">6 people</option>
+              <option value="7+">7+ people</option>
+            </select>
+          </div>
+        </div>
+        <div class="form__row">
+          <div class="form__group">
+            <label for="date">Date</label>
+            <input type="date" id="date" name="date" required />
+          </div>
+          <div class="form__group">
+            <label for="time">Time</label>
+            <select id="time" name="time" required>
+              <option value="">Select a time</option>
+              <option value="5:00 PM">5:00 PM</option>
+              <option value="5:30 PM">5:30 PM</option>
+              <option value="6:00 PM">6:00 PM</option>
+              <option value="6:30 PM">6:30 PM</option>
+              <option value="7:00 PM">7:00 PM</option>
+              <option value="7:30 PM">7:30 PM</option>
+              <option value="8:00 PM">8:00 PM</option>
+              <option value="8:30 PM">8:30 PM</option>
+              <option value="9:00 PM">9:00 PM</option>
+            </select>
+          </div>
+        </div>
+        <div class="form__group">
+          <label for="notes">Special Requests</label>
+          <textarea id="notes" name="notes" rows="3" placeholder="Allergies, celebrations, accessibility needs..."></textarea>
+        </div>
+        <button type="submit" class="btn btn--primary btn--full">Request Reservation</button>
+        <p class="form__note">We'll confirm your reservation by email within 24 hours.</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <p class="footer__logo">Joell's Lounge</p>
+        <p>Fresh ingredients. Handcrafted dishes.<br/>Unforgettable moments.</p>
+      </div>
+      <div class="footer__links">
+        <a href="#about">About</a>
+        <a href="#menu">Menu</a>
+        <a href="#hours">Hours</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <div class="footer__social">
+        <a href="#" aria-label="Instagram">Instagram</a>
+        <a href="#" aria-label="Facebook">Facebook</a>
+        <a href="#" aria-label="Yelp">Yelp</a>
+      </div>
+    </div>
+    <p class="footer__copy">&copy; 2026 Joell's Lounge. All rights reserved.</p>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
