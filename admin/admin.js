@@ -1339,6 +1339,16 @@ async function saveNewTeamMember(btn) {
 // ── ROLES ──────────────────────────────────────
 
 let allRoles = [];
+const ROLE_PERMISSION_PANELS = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles'];
+const ROLE_PERMISSION_LABELS = {
+  menu: 'Menu Items',
+  hours: 'Hours',
+  settings: 'Settings',
+  about: 'About Page',
+  messages: 'Messages',
+  users: 'Users',
+  roles: 'Roles'
+};
 
 async function loadRoles() {
   const res = await fetch('/api/admin/roles');
@@ -1408,13 +1418,11 @@ function openRoleEditModal(roleId) {
   document.getElementById('editRoleModalSub').textContent   = role.description || '';
   document.getElementById('editRoleError').textContent      = '';
 
-  const PANELS = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles'];
   const LABELS = { hidden: 'None', view: 'View', full: 'Edit' };
-  const PANEL_LABELS = { menu: 'Menu Items', hours: 'Hours', settings: 'Settings', about: 'About Page', messages: 'Messages', users: 'Users', roles: 'Roles' };
 
-  document.getElementById('editRolePermsGrid').innerHTML = PANELS.map(p => `
+  document.getElementById('editRolePermsGrid').innerHTML = ROLE_PERMISSION_PANELS.map(p => `
     <div class="role-perm-row">
-      <span class="role-perm-label">${PANEL_LABELS[p]}</span>
+      <span class="role-perm-label">${ROLE_PERMISSION_LABELS[p]}</span>
       <div class="role-perm-options">
         ${['hidden', 'view', 'full'].map(lv => `
           <label class="perm-radio">
@@ -1430,9 +1438,8 @@ function openRoleEditModal(roleId) {
 }
 
 async function saveRolePermissions() {
-  const PANELS = ['menu', 'hours', 'settings', 'about', 'users', 'roles'];
   const permissions = {};
-  PANELS.forEach(p => {
+  ROLE_PERMISSION_PANELS.forEach(p => {
     const checked = document.querySelector(`input[name="perm-${p}"]:checked`);
     permissions[p] = checked ? checked.value : 'hidden';
   });

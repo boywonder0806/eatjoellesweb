@@ -5,6 +5,10 @@ const path    = require('path');
 const { readData, writeData } = require('./db/store');
 
 const app = express();
+const ROLE_PERMISSION_PANELS = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles'];
+const DEFAULT_ROLE_PERMISSIONS = Object.fromEntries(
+  ROLE_PERMISSION_PANELS.map(panel => [panel, 'hidden'])
+);
 
 // ── First-run / migration setup ────────────────────────────────────────────
 (function init() {
@@ -83,10 +87,20 @@ const app = express();
     writeData(data2);
     console.log('✓ Roles system initialised.');
   } else {
-    // Add color field to any existing roles that don't have one
+    // Backfill role fields for existing installs.
     let roleMigrated = false;
     (data2.roles || []).forEach(r => {
       if (r.color === undefined) { r.color = '#9a9088'; roleMigrated = true; }
+      if (!r.permissions || typeof r.permissions !== 'object') {
+        r.permissions = { ...DEFAULT_ROLE_PERMISSIONS };
+        roleMigrated = true;
+      }
+      ROLE_PERMISSION_PANELS.forEach(panel => {
+        if (r.permissions[panel] === undefined) {
+          r.permissions[panel] = DEFAULT_ROLE_PERMISSIONS[panel];
+          roleMigrated = true;
+        }
+      });
     });
     if (roleMigrated) { writeData(data2); console.log('✓ Role fields migrated.'); }
   }

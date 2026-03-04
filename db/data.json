@@ -262,7 +262,8 @@
         "settings": "hidden",
         "about": "hidden",
         "users": "view",
-        "roles": "hidden"
+        "roles": "hidden",
+        "messages": "hidden"
       },
       "color": "#ffffff"
     },
@@ -275,6 +276,7 @@
         "hours": "full",
         "settings": "full",
         "about": "full",
+        "messages": "full",
         "users": "full",
         "roles": "full"
       },

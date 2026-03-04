@@ -15,6 +15,19 @@ function requireAdmin(req, res, next) {
 }
 
 const PERM_LEVELS = { hidden: 0, view: 1, full: 2 };
+const ROLE_PERMISSION_PANELS = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles'];
+const DEFAULT_ROLE_PERMISSIONS = Object.fromEntries(
+  ROLE_PERMISSION_PANELS.map(panel => [panel, 'hidden'])
+);
+
+function normalizeRolePermissions(permissions) {
+  const input = permissions && typeof permissions === 'object' ? permissions : {};
+  return ROLE_PERMISSION_PANELS.reduce((acc, panel) => {
+    const value = input[panel];
+    acc[panel] = Object.prototype.hasOwnProperty.call(PERM_LEVELS, value) ? value : DEFAULT_ROLE_PERMISSIONS[panel];
+    return acc;
+  }, {});
+}
 
 function requirePermission(panel, level) {
   return (req, res, next) => {
@@ -496,7 +509,7 @@ router.post('/roles', requireAdmin, (req, res) => {
     name,
     description: description || '',
     color:       req.body.color || '#9a9088',
-    permissions: permissions || { menu: 'hidden', hours: 'hidden', settings: 'hidden', about: 'hidden', users: 'hidden', roles: 'hidden' }
+    permissions: normalizeRolePermissions(permissions)
   };
   data.roles.push(role);
   writeData(data);
@@ -512,7 +525,7 @@ router.put('/roles/:id', requireAdmin, (req, res) => {
   if (req.body.name        !== undefined) data.roles[idx].name        = req.body.name;
   if (req.body.description !== undefined) data.roles[idx].description = req.body.description;
   if (req.body.color       !== undefined) data.roles[idx].color       = req.body.color;
-  if (req.body.permissions !== undefined) data.roles[idx].permissions = req.body.permissions;
+  if (req.body.permissions !== undefined) data.roles[idx].permissions = normalizeRolePermissions(req.body.permissions);
   writeData(data);
   res.json(data.roles[idx]);
 });
