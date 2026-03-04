@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About Us — Joelle's Lounge</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav" id="navbar">
+    <a href="/" class="nav__logo">Joelle's Lounge</a>
+    <button class="nav__toggle" id="navToggle" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav__links" id="navLinks">
+      <li><a href="/about" class="active">About</a></li>
+      <li><a href="/#menu">Menu</a></li>
+      <li><a href="/#hours">Hours</a></li>
+      <li><a href="/#contact">Contact</a></li>
+      <li><a href="/#contact" class="nav__cta">Reserve a Table</a></li>
+    </ul>
+  </nav>
+
+  <!-- PAGE HERO -->
+  <section class="page-hero">
+    <div class="container">
+      <span class="section__label reveal">Our Story</span>
+      <h1 class="page-hero__title reveal" id="page-hero-title">About Joelle's Lounge</h1>
+      <p class="page-hero__sub reveal" id="page-hero-tagline">Fine dining rooted in community, craft, and a genuine love of great food.</p>
+    </div>
+  </section>
+
+  <!-- OVERVIEW -->
+  <section class="section overview" id="overview">
+    <div class="container overview__grid">
+      <div class="overview__text reveal from-left">
+        <span class="section__label">Who We Are</span>
+        <h2 class="section__title">A passion for food,<br/>a love for people</h2>
+        <div id="overview-paragraphs">
+          <p>Joelle's Lounge was born from a simple belief: that a great meal is about more than just the food on your plate. Founded by Joelle Martin, the restaurant grew out of years of traveling, cooking, and a deep appreciation for the way a shared table can bring people together.</p>
+          <p>From day one, we've been committed to sourcing the finest local and seasonal ingredients, partnering with nearby farms and artisan producers who share our values.</p>
+          <p>Whether you're celebrating a milestone, enjoying a quiet dinner for two, or gathering with friends, Joelle's Lounge is your place. We're here to make every visit feel like coming home.</p>
+        </div>
+      </div>
+      <div class="overview__image reveal from-right">
+        <img
+          id="overview-img"
+          src="https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80"
+          alt="Inside Joelle's Lounge"
+          class="overview__img"
+        />
+      </div>
+    </div>
+  </section>
+
+  <!-- VALUES (static — not admin-managed) -->
+  <section class="section" style="background: var(--color-bg-alt); border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border);">
+    <div class="container" style="text-align: center;">
+      <span class="section__label reveal">What Drives Us</span>
+      <h2 class="section__title reveal">Our Values</h2>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; margin-top: 3rem;">
+        <div class="reveal delay-1" style="padding: 2rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius);">
+          <div style="font-size: 2rem; margin-bottom: 1rem;">🌿</div>
+          <h3 style="font-family: var(--font-heading); font-size: 1.15rem; margin-bottom: 0.6rem;">Locally Sourced</h3>
+          <p style="color: var(--color-muted); font-size: 0.92rem; line-height: 1.65;">We partner with local farms and artisan producers to bring the freshest seasonal ingredients to your table.</p>
+        </div>
+        <div class="reveal delay-2" style="padding: 2rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius);">
+          <div style="font-size: 2rem; margin-bottom: 1rem;">🍽️</div>
+          <h3 style="font-family: var(--font-heading); font-size: 1.15rem; margin-bottom: 0.6rem;">Handcrafted Dishes</h3>
+          <p style="color: var(--color-muted); font-size: 0.92rem; line-height: 1.65;">Every plate is prepared from scratch with care and intention — no shortcuts, no compromise on quality.</p>
+        </div>
+        <div class="reveal delay-3" style="padding: 2rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius);">
+          <div style="font-size: 2rem; margin-bottom: 1rem;">🤝</div>
+          <h3 style="font-family: var(--font-heading); font-size: 1.15rem; margin-bottom: 0.6rem;">Warm Hospitality</h3>
+          <p style="color: var(--color-muted); font-size: 0.92rem; line-height: 1.65;">Every guest deserves to feel welcome and cared for. That warmth is baked into everything we do.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MEET THE TEAM -->
+  <section class="section team" id="team">
+    <div class="container">
+      <span class="section__label reveal">The People Behind the Food</span>
+      <h2 class="section__title reveal">Meet the Team</h2>
+      <div class="team__grid" id="team-grid"></div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <p class="footer__logo">Joelle's Lounge</p>
+        <p>Fresh ingredients. Handcrafted dishes.<br/>Unforgettable moments.</p>
+      </div>
+      <div class="footer__links">
+        <a href="/about">About</a>
+        <a href="/#menu">Menu</a>
+        <a href="/#hours">Hours</a>
+        <a href="/#contact">Contact</a>
+      </div>
+      <div class="footer__social">
+        <a href="#" aria-label="Instagram">Instagram</a>
+        <a href="#" aria-label="Facebook">Facebook</a>
+        <a href="#" aria-label="Yelp">Yelp</a>
+      </div>
+    </div>
+    <p class="footer__copy">&copy; 2026 Joelle's Lounge. All rights reserved.</p>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script>
+    // main.js only observes selectors from index.html — observe all remaining
+    // .reveal elements on this page so they animate in correctly.
+    document.querySelectorAll('.reveal').forEach(el => {
+      if (window.__revealObserver) window.__revealObserver.observe(el);
+    });
+
+    fetch('/api/about')
+      .then(r => r.json())
+      .then(({ about_page: ap, team }) => {
+        // ── Page hero ────────────────────────────────
+        if (ap.headline) document.getElementById('page-hero-title').textContent   = ap.headline;
+        if (ap.tagline)  document.getElementById('page-hero-tagline').textContent = ap.tagline;
+
+        // ── Overview paragraphs ──────────────────────
+        if (ap.overview) {
+          const container = document.getElementById('overview-paragraphs');
+          container.innerHTML = ap.overview
+            .split(/\n\n+/)
+            .filter(p => p.trim())
+            .map(p => `<p>${p.trim()}</p>`)
+            .join('');
+        }
+
+        // ── Overview image ───────────────────────────
+        if (ap.overview_image) {
+          document.getElementById('overview-img').src = ap.overview_image;
+        }
+
+        // ── Team grid ────────────────────────────────
+        const grid = document.getElementById('team-grid');
+        const delays = ['delay-1', 'delay-2', 'delay-3', 'delay-4', 'delay-5'];
+        grid.innerHTML = team.map((m, i) => `
+          <div class="team__card reveal ${delays[i % delays.length]}">
+            <div class="team__img-wrap">
+              ${m.image_url
+                ? `<img class="team__img" src="${m.image_url}" alt="${m.name}" onerror="this.parentElement.innerHTML='<div class=\\'team__img-placeholder\\'>👤</div>'">`
+                : `<div class="team__img-placeholder">👤</div>`}
+            </div>
+            <div class="team__info">
+              <p class="team__name">${m.name}</p>
+              <p class="team__role">${m.role}</p>
+              <p class="team__blurb">${m.blurb}</p>
+            </div>
+          </div>
+        `).join('');
+
+        // Re-run reveal observer on new cards
+        if (window.__revealObserver) {
+          grid.querySelectorAll('.reveal').forEach(el => window.__revealObserver.observe(el));
+        }
+      });
+  </script>
+</body>
+</html>

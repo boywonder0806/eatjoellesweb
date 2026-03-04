@@ -39,6 +39,20 @@ const app = express();
     writeData(data);
     console.log('✓ Admin account initialised. Login: admin / joelles2026');
   }
+
+  // ── Multi-menu migration ──────────────────────────────────────────────────
+  if (!data.menus) {
+    data.menus = [{
+      id:         1,
+      name:       'Regular Menu',
+      categories: ['starters', 'mains', 'desserts', 'drinks'],
+      items:      data.menu || []
+    }];
+    data.active_menu_id = 1;
+    delete data.menu;
+    writeData(data);
+    console.log('✓ Migrated to multi-menu system.');
+  }
 })();
 
 // ── Middleware ──────────────────────────────────────────────────────────────
@@ -77,6 +91,7 @@ app.use('/admin', express.static(path.join(__dirname, 'admin'), { index: false }
 // ── Public static files ─────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname), { index: false }));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/about', (req, res) => res.sendFile(path.join(__dirname, 'about.html')));
 
 // ── Start ───────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;

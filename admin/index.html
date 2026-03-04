@@ -30,6 +30,9 @@
         <button class="sidebar__link" data-panel="settings" data-admin-only>
           <i class="nav-icon">&#9881;</i> Settings
         </button>
+        <button class="sidebar__link" data-panel="about" data-admin-only>
+          <i class="nav-icon">&#9998;</i> About Page
+        </button>
 
         <span class="sidebar__section" style="margin-top:0.5rem">Admin</span>
         <button class="sidebar__link" data-panel="users" data-admin-only>
@@ -59,8 +62,32 @@
           <div>
             <span class="panel__eyebrow">Manage</span>
             <h1 class="panel__title">Menu Items</h1>
-            <p class="panel__sub">Add, edit or remove dishes from each category.</p>
+            <p class="panel__sub">Create menus, manage categories, and add or edit dishes.</p>
           </div>
+          <button class="btn-gold" id="addMenuBtn" data-admin-only>+ New Menu</button>
+        </div>
+
+        <!-- Menu selector -->
+        <div class="menu-selector-wrap">
+          <div class="menu-selector" id="menuSelector"></div>
+          <div class="menu-selector-actions">
+            <button class="btn-ghost btn-sm" id="setLiveBtn" style="display:none">Set as Live</button>
+            <button class="btn-ghost btn-sm btn-ghost--danger" id="deleteMenuBtn" data-admin-only style="display:none">Delete Menu</button>
+          </div>
+        </div>
+
+        <!-- Category management bar -->
+        <div class="cat-bar">
+          <span class="cat-bar__label">Categories</span>
+          <div class="cat-tags" id="catTags"></div>
+          <div class="cat-add-wrap" id="catAddWrap" data-admin-only>
+            <input type="text" id="newCatInput" placeholder="Add category…" />
+            <button class="btn-ghost btn-sm" id="addCatBtn">Add</button>
+          </div>
+        </div>
+
+        <!-- Add item -->
+        <div class="menu-add-item-row">
           <button class="btn-gold" id="addItemBtn">+ Add Item</button>
         </div>
 
@@ -70,12 +97,7 @@
           <div class="add-form__grid">
             <div class="field">
               <label>Category</label>
-              <select name="category" required>
-                <option value="starters">Starters</option>
-                <option value="mains">Mains</option>
-                <option value="desserts">Desserts</option>
-                <option value="drinks">Drinks</option>
-              </select>
+              <select name="category" id="addItemCategory" required></select>
             </div>
             <div class="field">
               <label>Name</label>
@@ -96,23 +118,20 @@
           </div>
         </form>
 
-        <!-- Category filter -->
+        <!-- Category filter tabs -->
         <div class="cat-tabs" id="catTabs">
           <button class="cat-tab active" data-cat="all">All</button>
-          <button class="cat-tab" data-cat="starters">Starters</button>
-          <button class="cat-tab" data-cat="mains">Mains</button>
-          <button class="cat-tab" data-cat="desserts">Desserts</button>
-          <button class="cat-tab" data-cat="drinks">Drinks</button>
         </div>
 
         <div class="table-wrap">
           <table class="data-table">
             <thead>
               <tr>
-                <th style="width:110px">Category</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th style="width:120px">Price</th>
+                <th class="th-sort" data-sort="category" style="width:110px">Category <span class="sort-icon"></span></th>
+                <th class="th-sort" data-sort="name">Name <span class="sort-icon"></span></th>
+                <th class="th-sort" data-sort="description">Description <span class="sort-icon"></span></th>
+                <th class="th-sort" data-sort="price" style="width:120px">Price <span class="sort-icon"></span></th>
+                <th class="th-sort" data-sort="available" style="width:130px">Status <span class="sort-icon"></span></th>
                 <th style="width:110px">Actions</th>
               </tr>
             </thead>
@@ -175,6 +194,63 @@
             <span class="save-msg" id="settingsMsg"></span>
           </div>
         </form>
+      </section>
+
+      <!-- ── ABOUT PAGE PANEL ────────────────────── -->
+      <section class="panel" id="panel-about">
+        <div class="panel__header">
+          <div>
+            <span class="panel__eyebrow">Manage</span>
+            <h1 class="panel__title">About Page</h1>
+            <p class="panel__sub">Edit the content displayed on the public About page.</p>
+          </div>
+        </div>
+
+        <!-- Page Content -->
+        <div class="panel__section-label">Page Content</div>
+        <form class="settings-form" id="aboutPageForm" style="max-width:none">
+          <div class="field">
+            <label for="ap-headline">Headline</label>
+            <input type="text" id="ap-headline" name="headline" placeholder="e.g. About Joelle's Lounge" />
+          </div>
+          <div class="field">
+            <label for="ap-tagline">Tagline</label>
+            <input type="text" id="ap-tagline" name="tagline" placeholder="A short subtitle shown below the headline" />
+          </div>
+          <div class="field">
+            <label for="ap-overview">Overview Text</label>
+            <textarea id="ap-overview" name="overview" rows="6" placeholder="Restaurant overview / story. Separate paragraphs with a blank line."></textarea>
+          </div>
+          <div class="field">
+            <label for="ap-overview-img">Overview Image URL</label>
+            <input type="text" id="ap-overview-img" name="overview_image" placeholder="https://..." />
+          </div>
+          <div class="settings-form__actions">
+            <button type="submit" class="btn-gold">Save Changes</button>
+            <span class="save-msg" id="aboutPageMsg"></span>
+          </div>
+        </form>
+
+        <!-- Team Members -->
+        <div class="panel__section-label" style="margin-top:2.5rem">Team Members</div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:140px">Name</th>
+                <th style="width:160px">Role</th>
+                <th style="width:90px">Photo</th>
+                <th>Blurb</th>
+                <th style="width:130px">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="teamTbody"></tbody>
+          </table>
+          <p class="empty-state hidden" id="teamEmpty">No team members yet. Click &ldquo;+ Add Member&rdquo; to get started.</p>
+        </div>
+        <div style="margin-top:1rem;text-align:right">
+          <button class="btn-gold" id="addTeamMemberBtn">+ Add Member</button>
+        </div>
       </section>
 
       <!-- ── USERS PANEL ──────────────────────── -->

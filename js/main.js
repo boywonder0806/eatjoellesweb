@@ -42,18 +42,7 @@ function updateActiveNav() {
 window.addEventListener('scroll', updateActiveNav, { passive: true });
 updateActiveNav();
 
-// ── Menu tabs ─────────────────────────────────
-const tabs   = document.querySelectorAll('.menu__tab');
-const panels = document.querySelectorAll('.menu__panel');
-
-tabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-    tabs.forEach(t => t.classList.remove('active'));
-    panels.forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
-  });
-});
+// ── Menu tabs (built dynamically by renderMenu) ────────────────────────────
 
 // ── Reservation form ──────────────────────────
 const dateInput = document.getElementById('date');
@@ -81,7 +70,7 @@ if (form) {
 // ── Scroll Reveal ─────────────────────────────
 const staggerDelays = ['', 'delay-1', 'delay-2', 'delay-3', 'delay-4', 'delay-5'];
 
-const revealObserver = new IntersectionObserver((entries) => {
+const revealObserver = window.__revealObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
       entry.target.classList.add('is-visible');
@@ -125,7 +114,7 @@ markReveal('.footer__brand',   []);
 markReveal('.footer__links',   ['delay-1']);
 markReveal('.footer__social',  ['delay-2']);
 
-panels.forEach(panel => observeNewItems(panel));
+// panels are built dynamically by renderMenu()
 
 // ── XSS-safe text helper ──────────────────────
 function escHtml(str) {
@@ -159,20 +148,57 @@ async function loadSiteData() {
 }
 
 function renderMenu(data) {
-  ['starters', 'mains', 'desserts', 'drinks'].forEach(cat => {
-    const grid  = document.getElementById('grid-' + cat);
-    if (!grid) return;
-    const items = data[cat] || [];
-    grid.innerHTML = items.map(item => `
-      <div class="menu__item">
-        <div class="menu__item-info">
-          <h3>${escHtml(item.name)}</h3>
-          <p>${escHtml(item.description)}</p>
+  const { categories = [], grouped = {} } = data;
+  const tabsEl   = document.getElementById('menuTabs');
+  const panelsEl = document.getElementById('menuPanels');
+  if (!tabsEl || !panelsEl) return;
+
+  const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+  // Build tabs
+  tabsEl.innerHTML = categories.map((cat, i) =>
+    `<button class="menu__tab${i === 0 ? ' active' : ''}" data-tab="${cat}">${capitalize(cat)}</button>`
+  ).join('');
+
+  // Build panels + item cards
+  panelsEl.innerHTML = categories.map((cat, i) => {
+    const items = grouped[cat] || [];
+    return `
+      <div class="menu__panel${i === 0 ? ' active' : ''}" id="tab-${cat}">
+        <div class="menu__grid" id="grid-${cat}">
+          ${items.map(item => `
+            <div class="menu__item${item.available === false ? ' menu__item--unavailable' : ''}">
+              ${item.available === false ? `
+                <div class="menu__unavailable-overlay">
+                  <span>Temporarily Unavailable</span>
+                  <small>We&rsquo;ll have this back soon!</small>
+                </div>` : ''}
+              <div class="menu__item-info">
+                <h3>${escHtml(item.name)}</h3>
+                <p>${escHtml(item.description)}</p>
+              </div>
+              <span class="menu__price">${escHtml(item.price)}</span>
+            </div>
+          `).join('')}
         </div>
-        <span class="menu__price">${escHtml(item.price)}</span>
-      </div>
-    `).join('');
-    observeNewItems(grid);
+      </div>`;
+  }).join('');
+
+  // Tab click handler (event delegation)
+  tabsEl.addEventListener('click', e => {
+    const tab = e.target.closest('.menu__tab');
+    if (!tab) return;
+    tabsEl.querySelectorAll('.menu__tab').forEach(t => t.classList.remove('active'));
+    panelsEl.querySelectorAll('.menu__panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    const panel = document.getElementById('tab-' + tab.dataset.tab);
+    if (panel) panel.classList.add('active');
+  });
+
+  // Scroll-reveal on new items
+  categories.forEach(cat => {
+    const grid = document.getElementById('grid-' + cat);
+    if (grid) observeNewItems(grid);
   });
 }
 

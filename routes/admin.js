@@ -61,51 +61,120 @@ router.post('/change-password', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
-// ── MENU (requireAuth — both roles) ──────────────────────────────────────────
+// ── MENUS (requireAdmin — admin only for menu management) ────────────────────
 
-// GET /api/admin/menu
-router.get('/menu', requireAuth, (req, res) => {
-  const { menu } = readData();
-  res.json(menu.sort((a, b) => a.category.localeCompare(b.category) || a.sort_order - b.sort_order));
+// GET /api/admin/menus
+router.get('/menus', requireAuth, (req, res) => {
+  const data = readData();
+  res.json((data.menus || []).map(m => ({
+    id:         m.id,
+    name:       m.name,
+    categories: m.categories,
+    active:     m.id === data.active_menu_id,
+    itemCount:  (m.items || []).length
+  })));
 });
 
-// POST /api/admin/menu
-router.post('/menu', requireAuth, (req, res) => {
+// POST /api/admin/menus
+router.post('/menus', requireAdmin, (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name is required' });
+  const data = readData();
+  const menu = { id: getNextId(data.menus), name, categories: [], items: [] };
+  data.menus.push(menu);
+  writeData(data);
+  res.json(menu);
+});
+
+// PUT /api/admin/menus/:id
+router.put('/menus/:id', requireAdmin, (req, res) => {
+  const id   = parseInt(req.params.id, 10);
+  const data = readData();
+  const idx  = data.menus.findIndex(m => m.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Menu not found' });
+  if (req.body.name       !== undefined) data.menus[idx].name       = req.body.name;
+  if (req.body.categories !== undefined) data.menus[idx].categories = req.body.categories;
+  writeData(data);
+  res.json({ id: data.menus[idx].id, name: data.menus[idx].name, categories: data.menus[idx].categories });
+});
+
+// DELETE /api/admin/menus/:id
+router.delete('/menus/:id', requireAdmin, (req, res) => {
+  const id   = parseInt(req.params.id, 10);
+  const data = readData();
+  if (data.active_menu_id === id) return res.status(400).json({ error: 'Cannot delete the active menu' });
+  if (data.menus.length <= 1)     return res.status(400).json({ error: 'Cannot delete the only menu' });
+  data.menus = data.menus.filter(m => m.id !== id);
+  writeData(data);
+  res.json({ success: true });
+});
+
+// PUT /api/admin/menus/:id/activate
+router.put('/menus/:id/activate', requireAdmin, (req, res) => {
+  const id   = parseInt(req.params.id, 10);
+  const data = readData();
+  if (!data.menus.find(m => m.id === id)) return res.status(404).json({ error: 'Menu not found' });
+  data.active_menu_id = id;
+  writeData(data);
+  res.json({ success: true, active_menu_id: id });
+});
+
+// ── MENU ITEMS (requireAuth — both roles) ─────────────────────────────────────
+
+// GET /api/admin/menus/:menuId/items
+router.get('/menus/:menuId/items', requireAuth, (req, res) => {
+  const menuId = parseInt(req.params.menuId, 10);
+  const data   = readData();
+  const menu   = data.menus.find(m => m.id === menuId);
+  if (!menu) return res.status(404).json({ error: 'Menu not found' });
+  res.json((menu.items || []).sort((a, b) => a.category.localeCompare(b.category) || a.sort_order - b.sort_order));
+});
+
+// POST /api/admin/menus/:menuId/items
+router.post('/menus/:menuId/items', requireAuth, (req, res) => {
+  const menuId = parseInt(req.params.menuId, 10);
   const { category, name, description, price } = req.body;
-  if (!category || !name || !price) {
-    return res.status(400).json({ error: 'category, name and price are required' });
-  }
-  const data     = readData();
-  const catItems = data.menu.filter(i => i.category === category);
+  if (!category || !name || !price) return res.status(400).json({ error: 'category, name and price are required' });
+  const data = readData();
+  const menu = data.menus.find(m => m.id === menuId);
+  if (!menu) return res.status(404).json({ error: 'Menu not found' });
+  menu.items = menu.items || [];
+  const catItems = menu.items.filter(i => i.category === category);
   const newItem  = {
-    id:          getNextId(data.menu),
+    id:          getNextId(menu.items),
     category,
     name,
     description: description || '',
     price,
     sort_order:  catItems.length
   };
-  data.menu.push(newItem);
+  menu.items.push(newItem);
   writeData(data);
   res.json(newItem);
 });
 
-// PUT /api/admin/menu/:id
-router.put('/menu/:id', requireAuth, (req, res) => {
-  const id   = parseInt(req.params.id, 10);
-  const data = readData();
-  const idx  = data.menu.findIndex(i => i.id === id);
+// PUT /api/admin/menus/:menuId/items/:id
+router.put('/menus/:menuId/items/:id', requireAuth, (req, res) => {
+  const menuId = parseInt(req.params.menuId, 10);
+  const id     = parseInt(req.params.id, 10);
+  const data   = readData();
+  const menu   = data.menus.find(m => m.id === menuId);
+  if (!menu) return res.status(404).json({ error: 'Menu not found' });
+  const idx = (menu.items || []).findIndex(i => i.id === id);
   if (idx === -1) return res.status(404).json({ error: 'Item not found' });
-  data.menu[idx] = { ...data.menu[idx], ...req.body, id };
+  menu.items[idx] = { ...menu.items[idx], ...req.body, id };
   writeData(data);
-  res.json(data.menu[idx]);
+  res.json(menu.items[idx]);
 });
 
-// DELETE /api/admin/menu/:id
-router.delete('/menu/:id', requireAuth, (req, res) => {
-  const id  = parseInt(req.params.id, 10);
-  const data = readData();
-  data.menu  = data.menu.filter(i => i.id !== id);
+// DELETE /api/admin/menus/:menuId/items/:id
+router.delete('/menus/:menuId/items/:id', requireAuth, (req, res) => {
+  const menuId = parseInt(req.params.menuId, 10);
+  const id     = parseInt(req.params.id, 10);
+  const data   = readData();
+  const menu   = data.menus.find(m => m.id === menuId);
+  if (!menu) return res.status(404).json({ error: 'Menu not found' });
+  menu.items = (menu.items || []).filter(i => i.id !== id);
   writeData(data);
   res.json({ success: true });
 });
@@ -267,6 +336,69 @@ router.post('/users/:id/reset-password', requireAdmin, (req, res) => {
   if (idx === -1) return res.status(404).json({ error: 'User not found' });
   data.users[idx].passwordHash      = bcrypt.hashSync(tempPassword, 10);
   data.users[idx].mustChangePassword = true;
+  writeData(data);
+  res.json({ success: true });
+});
+
+// ── ABOUT PAGE SETTINGS (requireAdmin) ───────────────────────────────────────
+
+// GET /api/admin/about-page
+router.get('/about-page', requireAdmin, (_req, res) => {
+  res.json(readData().about_page || {});
+});
+
+// PUT /api/admin/about-page
+router.put('/about-page', requireAdmin, (req, res) => {
+  const { headline, tagline, overview, overview_image } = req.body;
+  const data = readData();
+  data.about_page = { headline, tagline, overview, overview_image };
+  writeData(data);
+  res.json(data.about_page);
+});
+
+// ── TEAM MEMBERS (requireAdmin) ───────────────────────────────────────────────
+
+// GET /api/admin/team
+router.get('/team', requireAdmin, (_req, res) => {
+  const data = readData();
+  res.json((data.team || []).sort((a, b) => a.sort_order - b.sort_order));
+});
+
+// POST /api/admin/team
+router.post('/team', requireAdmin, (req, res) => {
+  const { name, role, blurb, image_url } = req.body;
+  if (!name || !role) return res.status(400).json({ error: 'name and role are required' });
+  const data = readData();
+  data.team = data.team || [];
+  const member = {
+    id:         getNextId(data.team),
+    name,
+    role,
+    blurb:      blurb     || '',
+    image_url:  image_url || '',
+    sort_order: data.team.length
+  };
+  data.team.push(member);
+  writeData(data);
+  res.json(member);
+});
+
+// PUT /api/admin/team/:id
+router.put('/team/:id', requireAdmin, (req, res) => {
+  const id  = parseInt(req.params.id, 10);
+  const data = readData();
+  const idx  = (data.team || []).findIndex(m => m.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Team member not found' });
+  data.team[idx] = { ...data.team[idx], ...req.body, id };
+  writeData(data);
+  res.json(data.team[idx]);
+});
+
+// DELETE /api/admin/team/:id
+router.delete('/team/:id', requireAdmin, (req, res) => {
+  const id  = parseInt(req.params.id, 10);
+  const data = readData();
+  data.team  = (data.team || []).filter(m => m.id !== id);
   writeData(data);
   res.json({ success: true });
 });

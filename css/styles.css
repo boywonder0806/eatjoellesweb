@@ -332,9 +332,47 @@ a { color: inherit; text-decoration: none; }
   padding: 1.5rem 1.75rem;
   background: var(--color-bg-alt);
   transition: background var(--transition);
+  position: relative;
+  overflow: hidden;
 }
 
 .menu__item:hover { background: var(--color-surface); }
+
+.menu__item--unavailable { pointer-events: none; }
+.menu__item--unavailable .menu__item-info,
+.menu__item--unavailable .menu__price {
+  opacity: 0.3;
+}
+.menu__item--unavailable h3,
+.menu__item--unavailable .menu__price {
+  text-decoration: line-through;
+  text-decoration-color: var(--color-muted);
+}
+
+.menu__unavailable-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 14, 13, 0.88);
+  gap: 0.25rem;
+  text-align: center;
+  padding: 1rem;
+}
+.menu__unavailable-overlay span {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-gold);
+  letter-spacing: 0.02em;
+}
+.menu__unavailable-overlay small {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  font-style: italic;
+}
 
 .menu__item h3 {
   font-family: var(--font-heading);
@@ -656,3 +694,126 @@ a { color: inherit; text-decoration: none; }
 .nav__toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
 .nav__toggle.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
 .nav__toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* =============================================
+   ABOUT PAGE
+   ============================================= */
+
+/* ── Page Hero ───────────────────────────────── */
+.page-hero {
+  background: var(--color-bg);
+  padding: 10rem 0 5rem;
+  text-align: center;
+  border-bottom: 1px solid var(--color-border);
+}
+.page-hero .section__label { display: block; margin-bottom: 0.75rem; }
+.page-hero__title {
+  font-family: var(--font-heading);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+.page-hero__sub {
+  color: var(--color-muted);
+  font-size: 1.1rem;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+/* ── Overview Section ────────────────────────── */
+.overview { background: var(--color-bg-alt); }
+.overview__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+.overview__text p {
+  color: var(--color-muted);
+  font-size: 1.05rem;
+  line-height: 1.75;
+  margin-bottom: 1.25rem;
+}
+.overview__img {
+  width: 100%;
+  height: 460px;
+  object-fit: cover;
+  border-radius: var(--radius);
+}
+
+/* ── Team Section ────────────────────────────── */
+.team { background: var(--color-bg); }
+.team .section__title { text-align: center; }
+.team .section__label { display: block; text-align: center; }
+.team__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+.team__card {
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform var(--transition), border-color var(--transition);
+}
+.team__card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-gold);
+}
+.team__img-wrap {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--color-surface);
+}
+.team__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+.team__card:hover .team__img { transform: scale(1.04); }
+.team__img-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  font-size: 3rem;
+}
+.team__info { padding: 1.25rem 1.5rem 1.5rem; }
+.team__name {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+.team__role {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+  margin-bottom: 0.75rem;
+}
+.team__blurb {
+  font-size: 0.88rem;
+  color: var(--color-muted);
+  line-height: 1.65;
+}
+
+/* ── About Page Responsive ───────────────────── */
+@media (max-width: 900px) {
+  .team__grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .overview__grid { grid-template-columns: 1fr; }
+  .overview__img { height: 300px; }
+}
+@media (max-width: 480px) {
+  .team__grid { grid-template-columns: 1fr; }
+  .page-hero { padding: 8rem 0 4rem; }
+}
