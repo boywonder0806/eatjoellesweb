@@ -6,13 +6,38 @@ const { readData, writeData } = require('./db/store');
 
 const app = express();
 
-// ── First-run setup: hash default password if not set ──────────────────────
+// ── First-run / migration setup ────────────────────────────────────────────
 (function init() {
   const data = readData();
-  if (!data.admin.passwordHash) {
-    data.admin.passwordHash = bcrypt.hashSync('joells2026', 10);
+  if (data.admin) {
+    // Migrate legacy single-admin format → users array
+    const hash = data.admin.passwordHash || bcrypt.hashSync('joelles2026', 10);
+    data.users = [{
+      id:                1,
+      username:          data.admin.username || 'admin',
+      email:             'admin@joelleslounge.com',
+      role:              'admin',
+      passwordHash:      hash,
+      active:            true,
+      mustChangePassword: false,
+      createdAt:         new Date().toISOString()
+    }];
+    delete data.admin;
     writeData(data);
-    console.log('Admin account initialised. Login: admin / joells2026');
+    console.log('✓ Migrated to multi-user system. Existing admin password preserved.');
+  } else if (!data.users) {
+    data.users = [{
+      id:                1,
+      username:          'admin',
+      email:             'admin@joelleslounge.com',
+      role:              'admin',
+      passwordHash:      bcrypt.hashSync('joelles2026', 10),
+      active:            true,
+      mustChangePassword: false,
+      createdAt:         new Date().toISOString()
+    }];
+    writeData(data);
+    console.log('✓ Admin account initialised. Login: admin / joelles2026');
   }
 })();
 
@@ -56,7 +81,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 // ── Start ───────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`\nJoell's Lounge is running!`);
+  console.log(`\nJoelle's Lounge is running!`);
   console.log(`  Public site : http://localhost:${PORT}`);
   console.log(`  Admin panel : http://localhost:${PORT}/admin\n`);
 });

@@ -1,7 +1,7 @@
 {
-  "name": "joells-lounge",
+  "name": "joelles-lounge",
   "version": "1.0.0",
-  "description": "Joell's Lounge website with admin backend",
+  "description": "Joelle's Lounge website with admin backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

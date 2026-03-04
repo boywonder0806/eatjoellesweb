@@ -3,16 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Login — Joell's Lounge</title>
+  <title>Admin Login — Joelle's Lounge</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/admin/admin.css" />
 </head>
 <body class="login-page">
 
   <div class="login-card">
-    <div class="login-logo">Joell's Lounge</div>
-    <p class="login-sub">Admin Panel</p>
+    <p style="font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem;">Joelle's Lounge</p>
+    <div class="login-logo">Admin Portal</div>
+
+    <div class="login-divider">
+      <span>Secure Access</span>
+    </div>
 
     <form class="login-form" id="loginForm">
       <div class="field">
@@ -24,15 +28,21 @@
         <input type="password" id="password" name="password" autocomplete="current-password" required />
       </div>
       <p class="login-error" id="loginError"></p>
-      <button type="submit" class="btn-gold">Sign In</button>
+      <button type="submit" class="btn-gold" style="width:100%;margin-top:0.25rem;padding:0.75rem;">Sign In</button>
     </form>
+
+    <a href="/" class="login-back">← Back to public site</a>
   </div>
 
   <script>
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const error = document.getElementById('loginError');
+      const btn   = e.target.querySelector('button[type="submit"]');
       error.textContent = '';
+      btn.textContent   = 'Signing in…';
+      btn.disabled      = true;
+
       const res = await fetch('/api/admin/login', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -41,11 +51,14 @@
           password: document.getElementById('password').value
         })
       });
+
       if (res.ok) {
         window.location.href = '/admin';
       } else {
         const data = await res.json();
-        error.textContent = data.error || 'Login failed';
+        error.textContent = data.error || 'Login failed. Please try again.';
+        btn.textContent   = 'Sign In';
+        btn.disabled      = false;
       }
     });
   </script>
