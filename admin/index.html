@@ -45,6 +45,9 @@
         <button class="sidebar__link" data-panel="roles" data-permission-panel="roles">
           <i class="nav-icon">&#128273;</i> Roles
         </button>
+        <button class="sidebar__link" data-panel="security" data-permission-panel="security">
+          <i class="nav-icon nav-icon--danger">&#128737;</i> Security
+        </button>
       </nav>
 
       <div class="sidebar__footer">
@@ -119,6 +122,12 @@
               <label>Price</label>
               <input type="text" name="price" placeholder="e.g. $14" required />
             </div>
+            <div class="field field--full">
+              <label>Photo <span class="field-hint">(optional)</span></label>
+              <input type="file" id="addItemImage" accept="image/jpeg,image/png,image/webp,image/gif" />
+              <div class="image-preview" id="imagePreview"></div>
+              <input type="hidden" name="image" id="addItemImageValue" />
+            </div>
           </div>
           <div class="add-form__actions">
             <button type="submit" class="btn-gold">Add Item</button>
@@ -135,6 +144,7 @@
           <table class="data-table">
             <thead>
               <tr>
+                <th style="width:70px">Photo</th>
                 <th class="th-sort" data-sort="category" style="width:110px">Category <span class="sort-icon"></span></th>
                 <th class="th-sort" data-sort="name">Name <span class="sort-icon"></span></th>
                 <th class="th-sort" data-sort="description">Description <span class="sort-icon"></span></th>
@@ -382,6 +392,42 @@
             <tbody id="rolesTbody"></tbody>
           </table>
           <p class="empty-state hidden" id="rolesEmpty">No custom roles yet.</p>
+        </div>
+      </section>
+
+      <!-- ── SECURITY PANEL ───────────────────────── -->
+      <section class="panel" id="panel-security">
+        <div class="panel__header">
+          <div>
+            <span class="panel__eyebrow">Admin</span>
+            <h1 class="panel__title">Security &amp; Audit Log</h1>
+            <p class="panel__sub">A record of all actions taken in the management portal.</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:1rem">
+            <span class="save-msg" id="securityMsg"></span>
+            <button class="btn-ghost btn-ghost--danger btn-sm" id="clearLogsBtn">Clear Log</button>
+          </div>
+        </div>
+
+        <div class="log-filters">
+          <input type="text" id="logSearch" placeholder="Search by user, action, or details…" class="log-search-input" />
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table" id="logsTable">
+            <thead>
+              <tr>
+                <th class="th-sort" data-sort="timestamp" style="width:160px">Date &amp; Time <span class="sort-icon"> ▼</span></th>
+                <th class="th-sort" data-sort="username" style="width:110px">User <span class="sort-icon"></span></th>
+                <th class="th-sort" data-sort="role" style="width:90px">Role <span class="sort-icon"></span></th>
+                <th class="th-sort" data-sort="ip" style="width:130px">IP Address <span class="sort-icon"></span></th>
+                <th class="th-sort" data-sort="action" style="width:140px">Action <span class="sort-icon"></span></th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="logsTbody"></tbody>
+          </table>
+          <p class="empty-state hidden" id="logsEmpty">No log entries yet.</p>
         </div>
       </section>
 

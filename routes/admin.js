@@ -15,7 +15,7 @@ function requireAdmin(req, res, next) {
 }
 
 const PERM_LEVELS = { hidden: 0, view: 1, full: 2 };
-const ROLE_PERMISSION_PANELS = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles'];
+const ROLE_PERMISSION_PANELS = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles', 'security'];
 const DEFAULT_ROLE_PERMISSIONS = Object.fromEntries(
   ROLE_PERMISSION_PANELS.map(panel => [panel, 'hidden'])
 );
@@ -41,6 +41,25 @@ function requirePermission(panel, level) {
   };
 }
 
+function addLog(req, action, details) {
+  try {
+    const data = readData();
+    data.logs = data.logs || [];
+    data.logs.push({
+      id:        (data.logs.length ? Math.max(...data.logs.map(l => l.id)) + 1 : 1),
+      timestamp: new Date().toISOString(),
+      username:  req.session?.username || '(system)',
+      role:      req.session?.role     || '',
+      ip:        (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim(),
+      action,
+      details
+    });
+    // Keep only the most recent 1000 entries
+    if (data.logs.length > 1000) data.logs = data.logs.slice(-1000);
+    writeData(data);
+  } catch (_) { /* logging must never break a request */ }
+}
+
 // POST /api/admin/login
 router.post('/login', (req, res) => {
   const { username, password } = req.body;
@@ -50,6 +69,7 @@ router.post('/login', (req, res) => {
 
   // Account is locked
   if (user && !user.active) {
+    addLog(req, 'auth.login_blocked', `Login attempt on locked account '${username}'`);
     return res.status(403).json({ error: 'Your account is currently locked. Please contact your administrator for further assistance.' });
   }
 
@@ -63,9 +83,13 @@ router.post('/login', (req, res) => {
         data.users[userIdx].active              = false;
         data.users[userIdx].failedLoginAttempts = 0;
         writeData(data);
+        addLog(req, 'auth.account_locked', `Account '${username}' locked after 3 failed login attempts`);
         return res.status(403).json({ error: 'Your account has been locked due to too many failed login attempts. Please contact your administrator.' });
       }
       writeData(data);
+      addLog(req, 'auth.login_failed', `Failed login attempt for '${username}' (attempt ${attempts}/3)`);
+    } else {
+      addLog(req, 'auth.login_failed', `Failed login attempt for unknown username '${username}'`);
     }
     return res.status(401).json({ error: 'Invalid username or password' });
   }
@@ -78,11 +102,13 @@ router.post('/login', (req, res) => {
   req.session.username           = user.username;
   req.session.role               = user.role;
   req.session.mustChangePassword = user.mustChangePassword;
+  addLog(req, 'auth.login', `User '${user.username}' logged in successfully`);
   res.json({ success: true });
 });
 
 // POST /api/admin/logout
 router.post('/logout', (req, res) => {
+  addLog(req, 'auth.logout', `User '${req.session.username}' signed out`);
   req.session.destroy();
   res.json({ success: true });
 });
@@ -117,6 +143,7 @@ router.post('/change-password', requireAuth, (req, res) => {
   data.users[idx].mustChangePassword = false;
   writeData(data);
   req.session.mustChangePassword = false;
+  addLog(req, 'user.change_password', `User '${req.session.username}' changed their own password`);
   res.json({ success: true });
 });
 
@@ -141,6 +168,7 @@ router.put('/profile', requireAuth, (req, res) => {
     if (req.body[key] !== undefined) data.users[idx][key] = req.body[key];
   });
   writeData(data);
+  addLog(req, 'user.update_profile', `User '${req.session.username}' updated their profile`);
   const { passwordHash, ...safe } = data.users[idx];
   res.json(safe);
 });
@@ -167,6 +195,7 @@ router.post('/menus', requirePermission('menu', 'full'), (req, res) => {
   const menu = { id: getNextId(data.menus), name, categories: [], items: [] };
   data.menus.push(menu);
   writeData(data);
+  addLog(req, 'menu.create', `Created menu '${name}'`);
   res.json(menu);
 });
 
@@ -179,6 +208,7 @@ router.put('/menus/:id', requirePermission('menu', 'full'), (req, res) => {
   if (req.body.name       !== undefined) data.menus[idx].name       = req.body.name;
   if (req.body.categories !== undefined) data.menus[idx].categories = req.body.categories;
   writeData(data);
+  addLog(req, 'menu.update', `Updated menu '${data.menus[idx].name}' (id ${id})`);
   res.json({ id: data.menus[idx].id, name: data.menus[idx].name, categories: data.menus[idx].categories });
 });
 
@@ -188,8 +218,10 @@ router.delete('/menus/:id', requirePermission('menu', 'full'), (req, res) => {
   const data = readData();
   if (data.active_menu_id === id) return res.status(400).json({ error: 'Cannot delete the active menu' });
   if (data.menus.length <= 1)     return res.status(400).json({ error: 'Cannot delete the only menu' });
+  const deletedMenuName = (data.menus.find(m => m.id === id) || {}).name || id;
   data.menus = data.menus.filter(m => m.id !== id);
   writeData(data);
+  addLog(req, 'menu.delete', `Deleted menu '${deletedMenuName}' (id ${id})`);
   res.json({ success: true });
 });
 
@@ -197,9 +229,11 @@ router.delete('/menus/:id', requirePermission('menu', 'full'), (req, res) => {
 router.put('/menus/:id/activate', requirePermission('menu', 'full'), (req, res) => {
   const id   = parseInt(req.params.id, 10);
   const data = readData();
-  if (!data.menus.find(m => m.id === id)) return res.status(404).json({ error: 'Menu not found' });
+  const activatingMenu = data.menus.find(m => m.id === id);
+  if (!activatingMenu) return res.status(404).json({ error: 'Menu not found' });
   data.active_menu_id = id;
   writeData(data);
+  addLog(req, 'menu.activate', `Set menu '${activatingMenu.name}' (id ${id}) as live`);
   res.json({ success: true, active_menu_id: id });
 });
 
@@ -217,7 +251,7 @@ router.get('/menus/:menuId/items', requirePermission('menu', 'view'), (req, res)
 // POST /api/admin/menus/:menuId/items
 router.post('/menus/:menuId/items', requirePermission('menu', 'full'), (req, res) => {
   const menuId = parseInt(req.params.menuId, 10);
-  const { category, name, description, price } = req.body;
+  const { category, name, description, price, image } = req.body;
   if (!category || !name || !price) return res.status(400).json({ error: 'category, name and price are required' });
   const data = readData();
   const menu = data.menus.find(m => m.id === menuId);
@@ -232,8 +266,10 @@ router.post('/menus/:menuId/items', requirePermission('menu', 'full'), (req, res
     price,
     sort_order:  catItems.length
   };
+  if (image) newItem.image = image;
   menu.items.push(newItem);
   writeData(data);
+  addLog(req, 'menu.item_create', `Added item '${name}' (${category}) to menu '${menu.name}'`);
   res.json(newItem);
 });
 
@@ -248,6 +284,7 @@ router.put('/menus/:menuId/items/:id', requirePermission('menu', 'full'), (req, 
   if (idx === -1) return res.status(404).json({ error: 'Item not found' });
   menu.items[idx] = { ...menu.items[idx], ...req.body, id };
   writeData(data);
+  addLog(req, 'menu.item_update', `Updated item '${menu.items[idx].name}' in menu '${menu.name}'`);
   res.json(menu.items[idx]);
 });
 
@@ -258,8 +295,10 @@ router.delete('/menus/:menuId/items/:id', requirePermission('menu', 'full'), (re
   const data   = readData();
   const menu   = data.menus.find(m => m.id === menuId);
   if (!menu) return res.status(404).json({ error: 'Menu not found' });
+  const deletedItem = (menu.items || []).find(i => i.id === id);
   menu.items = (menu.items || []).filter(i => i.id !== id);
   writeData(data);
+  addLog(req, 'menu.item_delete', `Deleted item '${deletedItem?.name || id}' from menu '${menu.name}'`);
   res.json({ success: true });
 });
 
@@ -281,6 +320,7 @@ router.post('/hours', requirePermission('hours', 'full'), (req, res) => {
   const newRow = { id: getNextId(data.hours), days, time_range, sort_order: data.hours.length };
   data.hours.push(newRow);
   writeData(data);
+  addLog(req, 'hours.create', `Added hours row: ${days} — ${time_range}`);
   res.json(newRow);
 });
 
@@ -292,6 +332,7 @@ router.put('/hours/:id', requirePermission('hours', 'full'), (req, res) => {
   if (idx === -1) return res.status(404).json({ error: 'Row not found' });
   data.hours[idx] = { ...data.hours[idx], ...req.body, id };
   writeData(data);
+  addLog(req, 'hours.update', `Updated hours row: ${data.hours[idx].days} — ${data.hours[idx].time_range}`);
   res.json(data.hours[idx]);
 });
 
@@ -299,8 +340,10 @@ router.put('/hours/:id', requirePermission('hours', 'full'), (req, res) => {
 router.delete('/hours/:id', requirePermission('hours', 'full'), (req, res) => {
   const id   = parseInt(req.params.id, 10);
   const data = readData();
+  const deletedRow = data.hours.find(h => h.id === id);
   data.hours = data.hours.filter(h => h.id !== id);
   writeData(data);
+  addLog(req, 'hours.delete', `Deleted hours row: ${deletedRow?.days || id}`);
   res.json({ success: true });
 });
 
@@ -320,6 +363,7 @@ router.put('/settings', requirePermission('settings', 'full'), (req, res) => {
     if (req.body[key] !== undefined) data.settings[key] = req.body[key];
   });
   writeData(data);
+  addLog(req, 'settings.update', `Updated contact settings`);
   res.json(data.settings);
 });
 
@@ -357,6 +401,7 @@ router.post('/users', requirePermission('users', 'full'), (req, res) => {
   };
   data.users.push(newUser);
   writeData(data);
+  addLog(req, 'user.create', `Created user '${username}' with role '${role}'`);
   const { passwordHash, ...safeUser } = newUser;
   res.json(safeUser);
 });
@@ -381,10 +426,17 @@ router.put('/users/:id', requirePermission('users', 'full'), (req, res) => {
   }
 
   const allowed = ['username', 'email', 'role', 'active', 'firstName', 'lastName', 'phone', 'profilePicture'];
+  const changes = allowed.filter(k => req.body[k] !== undefined).map(k => {
+    if (k === 'active') return req.body[k] ? 'unlocked' : 'locked';
+    if (k === 'role')   return `role → ${req.body[k]}`;
+    if (k === 'profilePicture') return 'photo updated';
+    return k;
+  });
   allowed.forEach(key => {
     if (req.body[key] !== undefined) data.users[idx][key] = req.body[key];
   });
   writeData(data);
+  addLog(req, 'user.update', `Updated user '${data.users[idx].username}': ${changes.join(', ') || 'no changes'}`);
   const { passwordHash, ...safeUser } = data.users[idx];
   res.json(safeUser);
 });
@@ -405,8 +457,10 @@ router.delete('/users/:id', requirePermission('users', 'full'), (req, res) => {
     }
   }
 
+  const deletedUser = data.users.find(u => u.id === id);
   data.users = data.users.filter(u => u.id !== id);
   writeData(data);
+  addLog(req, 'user.delete', `Deleted user '${deletedUser?.username || id}'`);
   res.json({ success: true });
 });
 
@@ -422,6 +476,7 @@ router.post('/users/:id/reset-password', requirePermission('users', 'full'), (re
   data.users[idx].passwordHash      = bcrypt.hashSync(tempPassword, 10);
   data.users[idx].mustChangePassword = true;
   writeData(data);
+  addLog(req, 'user.reset_password', `Reset password for user '${data.users[idx].username}'`);
   res.json({ success: true });
 });
 
@@ -438,6 +493,7 @@ router.put('/about-page', requirePermission('about', 'full'), (req, res) => {
   const data = readData();
   data.about_page = { headline, tagline, overview, overview_image };
   writeData(data);
+  addLog(req, 'about.update', `Updated About page content`);
   res.json(data.about_page);
 });
 
@@ -465,6 +521,7 @@ router.post('/team', requirePermission('about', 'full'), (req, res) => {
   };
   data.team.push(member);
   writeData(data);
+  addLog(req, 'team.create', `Added team member '${name}' (${role})`);
   res.json(member);
 });
 
@@ -476,6 +533,7 @@ router.put('/team/:id', requirePermission('about', 'full'), (req, res) => {
   if (idx === -1) return res.status(404).json({ error: 'Team member not found' });
   data.team[idx] = { ...data.team[idx], ...req.body, id };
   writeData(data);
+  addLog(req, 'team.update', `Updated team member '${data.team[idx].name}'`);
   res.json(data.team[idx]);
 });
 
@@ -483,8 +541,10 @@ router.put('/team/:id', requirePermission('about', 'full'), (req, res) => {
 router.delete('/team/:id', requirePermission('about', 'full'), (req, res) => {
   const id  = parseInt(req.params.id, 10);
   const data = readData();
+  const deletedMember = (data.team || []).find(m => m.id === id);
   data.team  = (data.team || []).filter(m => m.id !== id);
   writeData(data);
+  addLog(req, 'team.delete', `Deleted team member '${deletedMember?.name || id}'`);
   res.json({ success: true });
 });
 
@@ -513,6 +573,7 @@ router.post('/roles', requireAdmin, (req, res) => {
   };
   data.roles.push(role);
   writeData(data);
+  addLog(req, 'role.create', `Created role '${name}'`);
   res.json(role);
 });
 
@@ -527,6 +588,8 @@ router.put('/roles/:id', requireAdmin, (req, res) => {
   if (req.body.color       !== undefined) data.roles[idx].color       = req.body.color;
   if (req.body.permissions !== undefined) data.roles[idx].permissions = normalizeRolePermissions(req.body.permissions);
   writeData(data);
+  const updateType = req.body.permissions ? 'permissions' : req.body.color ? 'color' : 'details';
+  addLog(req, 'role.update', `Updated ${updateType} for role '${data.roles[idx].name}'`);
   res.json(data.roles[idx]);
 });
 
@@ -538,8 +601,10 @@ router.delete('/roles/:id', requireAdmin, (req, res) => {
   if (!role) return res.status(404).json({ error: 'Role not found' });
   const inUse = (data.users || []).some(u => u.role === role.name);
   if (inUse) return res.status(400).json({ error: 'Cannot delete a role that is assigned to users' });
+  const deletedRoleName = role.name;
   data.roles = data.roles.filter(r => r.id !== id);
   writeData(data);
+  addLog(req, 'role.delete', `Deleted role '${deletedRoleName}'`);
   res.json({ success: true });
 });
 
@@ -560,6 +625,7 @@ router.put('/messages/:id/read', requirePermission('messages', 'view'), (req, re
   if (idx === -1) return res.status(404).json({ error: 'Message not found' });
   data.messages[idx].read = !data.messages[idx].read;
   writeData(data);
+  addLog(req, 'messages.mark_read', `Marked message from '${data.messages[idx].name}' as ${data.messages[idx].read ? 'read' : 'unread'}`);
   res.json(data.messages[idx]);
 });
 
@@ -570,8 +636,28 @@ router.delete('/messages/:id', requirePermission('messages', 'full'), (req, res)
   if (!(data.messages || []).find(m => m.id === id)) {
     return res.status(404).json({ error: 'Message not found' });
   }
+  const deletedMsg = data.messages.find(m => m.id === id);
   data.messages = data.messages.filter(m => m.id !== id);
   writeData(data);
+  addLog(req, 'messages.delete', `Deleted message from '${deletedMsg?.name || id}' (${deletedMsg?.email || ''})`);
+  res.json({ success: true });
+});
+
+// ── SECURITY / AUDIT LOG ───────────────────────────────────────────────────────
+
+// GET /api/admin/logs
+router.get('/logs', requirePermission('security', 'view'), (_req, res) => {
+  const data = readData();
+  const logs = (data.logs || []).slice().reverse(); // newest first
+  res.json(logs);
+});
+
+// DELETE /api/admin/logs — clear all logs (admin only)
+router.delete('/logs', requireAdmin, (req, res) => {
+  const data = readData();
+  data.logs  = [];
+  writeData(data);
+  addLog(req, 'security.clear_logs', `Audit log cleared by '${req.session.username}'`);
   res.json({ success: true });
 });
 

@@ -43,14 +43,15 @@ fetch('/api/admin/check')
     if (canView('settings')) loadSettings();
     if (canView('users'))    loadUsers();
     if (canView('about'))  { loadAboutPage(); loadTeam(); }
-    if (canView('messages')) loadMessages();
+    if (canView('messages'))  loadMessages();
+    if (canView('security'))  loadLogs();
     loadRoles(); // always load for badge colors; management UI only visible to admin
   })
   .catch(() => window.location.href = '/admin/login');
 
 // ── Role gating ──────────────────────────────
 function applyRoleGating(data) {
-  const PANELS  = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles'];
+  const PANELS  = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles', 'security'];
   const isAdmin = data.role === 'admin';
   const perms   = data.permissions; // null = admin
 
@@ -70,8 +71,8 @@ function applyRoleGating(data) {
   if (!isAdmin) {
     document.querySelectorAll('[data-admin-only]').forEach(el => { el.style.display = 'none'; });
 
-    // Hide the "Admin" sidebar section label if both users and roles are hidden
-    const adminPanels = ['users', 'roles'];
+    // Hide the "Admin" sidebar section label if all admin panels are hidden
+    const adminPanels = ['users', 'roles', 'security'];
     const allHidden   = adminPanels.every(p => (perms?.[p] ?? 'hidden') === 'hidden');
     const label       = document.getElementById('sidebarAdminSection');
     if (label) label.style.display = allHidden ? 'none' : '';
@@ -632,6 +633,7 @@ function renderMenuTable() {
 
   tbody.innerHTML = items.map(item => `
     <tr data-id="${item.id}"${item.available === false ? ' style="opacity:0.6"' : ''}>
+      <td>${item.image ? `<img class="item-thumb" src="/uploads/menu/${esc(item.image)}" alt="${esc(item.name)}">` : '<span class="item-thumb-empty">—</span>'}</td>
       <td><span class="badge badge--${esc(item.category)}">${esc(item.category)}</span></td>
       <td${item.available === false ? ' style="text-decoration:line-through;color:var(--muted)"' : ''}>${esc(item.name)}</td>
       <td style="color:var(--muted)">${esc(item.description)}</td>
@@ -661,6 +663,16 @@ function editMenuRow(id) {
   tr.classList.add('editing');
   tr.innerHTML = `
     <td>
+      <div class="edit-image-cell">
+        ${item.image ? `<img class="item-thumb" src="/uploads/menu/${esc(item.image)}" alt="${esc(item.name)}" id="editThumb-${id}">` : `<span class="item-thumb-empty" id="editThumb-${id}">—</span>`}
+        <label class="btn-ghost btn-sm edit-img-label">
+          Change
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="edit-img-input" data-id="${id}" style="display:none" />
+        </label>
+        <input type="hidden" data-field="image" value="${esc(item.image || '')}" />
+      </div>
+    </td>
+    <td>
       <select data-field="category">
         ${cats.map(c => `<option value="${c}" ${item.category === c ? 'selected' : ''}>${c}</option>`).join('')}
       </select>
@@ -676,6 +688,26 @@ function editMenuRow(id) {
       </div>
     </td>
   `;
+
+  // Handle inline image replacement
+  tr.querySelector('.edit-img-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('image', file);
+    const res = await fetch('/api/admin/upload/menu-image', { method: 'POST', body: fd });
+    if (!res.ok) return;
+    const { filename } = await res.json();
+    tr.querySelector('[data-field="image"]').value = filename;
+    const thumb = document.getElementById(`editThumb-${id}`);
+    if (thumb) {
+      const img = document.createElement('img');
+      img.className = 'item-thumb';
+      img.src = `/uploads/menu/${filename}`;
+      img.id  = `editThumb-${id}`;
+      thumb.replaceWith(img);
+    }
+  });
 }
 
 async function saveMenuRow(id) {
@@ -819,20 +851,39 @@ document.getElementById('cancelAddBtn').addEventListener('click', () => {
   document.getElementById('addItemForm').classList.add('hidden');
   document.getElementById('addItemBtn').classList.remove('hidden');
   document.getElementById('addItemForm').reset();
+  document.getElementById('imagePreview').innerHTML = '';
+  document.getElementById('addItemImageValue').value = '';
+});
+
+document.getElementById('addItemImage').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('image', file);
+  const res = await fetch('/api/admin/upload/menu-image', { method: 'POST', body: fd });
+  if (!res.ok) { e.target.value = ''; return; }
+  const { filename } = await res.json();
+  document.getElementById('addItemImageValue').value = filename;
+  const preview = document.getElementById('imagePreview');
+  preview.innerHTML = `<img src="/uploads/menu/${filename}" alt="preview" />`;
 });
 
 document.getElementById('addItemForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const fd  = new FormData(e.target);
+  const fd      = new FormData(e.target);
+  const payload = Object.fromEntries(fd);
+  if (!payload.image) delete payload.image; // omit if no image was uploaded
   const res = await fetch(`/api/admin/menus/${currentMenuId}/items`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(Object.fromEntries(fd))
+    body:    JSON.stringify(payload)
   });
   if (res.ok) {
     e.target.reset();
     document.getElementById('addItemForm').classList.add('hidden');
     document.getElementById('addItemBtn').classList.remove('hidden');
+    document.getElementById('imagePreview').innerHTML = '';
+    document.getElementById('addItemImageValue').value = '';
     // Re-populate category select after reset
     const menu = allMenus.find(m => m.id === currentMenuId);
     if (menu) renderCategoryBar(menu);
@@ -1339,7 +1390,7 @@ async function saveNewTeamMember(btn) {
 // ── ROLES ──────────────────────────────────────
 
 let allRoles = [];
-const ROLE_PERMISSION_PANELS = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles'];
+const ROLE_PERMISSION_PANELS = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles', 'security'];
 const ROLE_PERMISSION_LABELS = {
   menu: 'Menu Items',
   hours: 'Hours',
@@ -1347,7 +1398,8 @@ const ROLE_PERMISSION_LABELS = {
   about: 'About Page',
   messages: 'Messages',
   users: 'Users',
-  roles: 'Roles'
+  roles: 'Roles',
+  security: 'Security'
 };
 
 async function loadRoles() {
@@ -1521,5 +1573,124 @@ document.getElementById('addRoleForm')?.addEventListener('submit', async (e) => 
   } else {
     const data = await res.json();
     showMsg(msg, data.error || 'Failed to create role', true);
+  }
+});
+
+// ── SECURITY / AUDIT LOG ───────────────────────
+
+let allLogs     = [];
+let logSortCol  = 'timestamp';
+let logSortDir  = 'desc';
+
+const LOG_ACTION_COLORS = {
+  'auth':     '#4a9eff',
+  'user':     '#c9a84c',
+  'menu':     '#2ecc71',
+  'hours':    '#27ae8f',
+  'settings': '#9b59b6',
+  'about':    '#e67e22',
+  'team':     '#e67e22',
+  'role':     '#c9a84c',
+  'messages': '#27ae8f',
+  'security': '#e74c3c',
+};
+
+function logActionColor(action) {
+  const prefix = action.split('.')[0];
+  return LOG_ACTION_COLORS[prefix] || '#9a9088';
+}
+
+function logActionLabel(action) {
+  return action.replace('.', ' › ').replace(/_/g, ' ');
+}
+
+async function loadLogs() {
+  const res = await fetch('/api/admin/logs');
+  if (!res.ok) return;
+  allLogs = await res.json();
+  renderLogs();
+}
+
+function renderLogs(filter) {
+  const tbody = document.getElementById('logsTbody');
+  const empty = document.getElementById('logsEmpty');
+  if (!tbody) return;
+
+  const query = (filter ?? document.getElementById('logSearch')?.value ?? '').toLowerCase();
+  let logs = query
+    ? allLogs.filter(l =>
+        (l.username || '').toLowerCase().includes(query) ||
+        (l.action   || '').toLowerCase().includes(query) ||
+        (l.details  || '').toLowerCase().includes(query) ||
+        (l.ip       || '').toLowerCase().includes(query)
+      )
+    : [...allLogs];
+
+  // ── Sort ──────────────────────────────────────
+  logs.sort((a, b) => {
+    const va = (a[logSortCol] || '').toString().toLowerCase();
+    const vb = (b[logSortCol] || '').toString().toLowerCase();
+    if (va < vb) return logSortDir === 'asc' ? -1 : 1;
+    if (va > vb) return logSortDir === 'asc' ?  1 : -1;
+    return 0;
+  });
+
+  // ── Update sort icons ─────────────────────────
+  document.querySelectorAll('#panel-security .th-sort').forEach(th => {
+    th.querySelector('.sort-icon').textContent =
+      th.dataset.sort === logSortCol ? (logSortDir === 'asc' ? ' ▲' : ' ▼') : '';
+  });
+
+  empty.classList.toggle('hidden', logs.length > 0);
+
+  tbody.innerHTML = logs.map(l => {
+    const dt     = new Date(l.timestamp);
+    const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+    const color  = logActionColor(l.action);
+    return `
+      <tr>
+        <td class="log-ts"><span>${dateStr}</span><span class="log-time">${timeStr}</span></td>
+        <td><strong>${esc(l.username || '—')}</strong></td>
+        <td><span class="role-badge" style="background:rgba(154,144,136,0.15);color:#9a9088;border:1px solid rgba(154,144,136,0.25)">${esc(l.role || '—')}</span></td>
+        <td class="log-ip">${esc(l.ip || '—')}</td>
+        <td><span class="log-action-badge" style="background:${color}22;color:${color};border:1px solid ${color}44">${logActionLabel(l.action)}</span></td>
+        <td class="log-details">${esc(l.details || '')}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+document.getElementById('logSearch')?.addEventListener('input', e => renderLogs(e.target.value));
+
+document.querySelector('#panel-security .data-table thead')?.addEventListener('click', (e) => {
+  const th = e.target.closest('.th-sort');
+  if (!th) return;
+  const col = th.dataset.sort;
+  if (logSortCol === col) {
+    logSortDir = logSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    logSortCol = col;
+    logSortDir = 'asc';
+  }
+  renderLogs();
+});
+
+document.getElementById('clearLogsBtn')?.addEventListener('click', async () => {
+  const ok = await showConfirm({
+    title:       'Clear Audit Log',
+    message:     'All log entries will be permanently deleted. This action cannot be undone.',
+    confirmText: 'Clear All',
+    type:        'danger'
+  });
+  if (!ok) return;
+  const res = await fetch('/api/admin/logs', { method: 'DELETE' });
+  const msg = document.getElementById('securityMsg');
+  if (res.ok) {
+    allLogs = [];
+    renderLogs();
+    showMsg(msg, '✓ Log cleared');
+  } else {
+    showMsg(msg, '✗ Failed to clear log', true);
   }
 });

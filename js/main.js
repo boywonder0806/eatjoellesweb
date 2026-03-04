@@ -181,11 +181,14 @@ function renderMenu(data) {
                   <span>Temporarily Unavailable</span>
                   <small>We&rsquo;ll have this back soon!</small>
                 </div>` : ''}
-              <div class="menu__item-info">
-                <h3>${escHtml(item.name)}</h3>
-                <p>${escHtml(item.description)}</p>
+              ${item.image ? `<img class="menu__item-img" src="/uploads/menu/${escHtml(item.image)}" alt="${escHtml(item.name)}" loading="lazy">` : ''}
+              <div class="menu__item-body">
+                <div class="menu__item-info">
+                  <h3>${escHtml(item.name)}</h3>
+                  ${item.description ? `<p>${escHtml(item.description)}</p>` : ''}
+                </div>
+                <span class="menu__price">${escHtml(item.price)}</span>
               </div>
-              <span class="menu__price">${escHtml(item.price)}</span>
             </div>
           `).join('')}
         </div>

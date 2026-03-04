@@ -2,10 +2,33 @@ const express = require('express');
 const session = require('express-session');
 const bcrypt  = require('bcryptjs');
 const path    = require('path');
+const multer  = require('multer');
+const fs      = require('fs');
 const { readData, writeData } = require('./db/store');
 
+// ── Image upload (multer) ────────────────────────────────────────────────────
+const uploadDir = path.join(__dirname, 'uploads', 'menu');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const menuImageStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename:    (_req, file,  cb) => {
+    const ext  = path.extname(file.originalname).toLowerCase();
+    const safe = Date.now() + '-' + Math.round(Math.random() * 1e6) + ext;
+    cb(null, safe);
+  }
+});
+const uploadMenuImage = multer({
+  storage:  menuImageStorage,
+  limits:   { fileSize: 8 * 1024 * 1024 }, // 8 MB
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Only image files are allowed'));
+  }
+});
+
 const app = express();
-const ROLE_PERMISSION_PANELS = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles'];
+const ROLE_PERMISSION_PANELS = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles', 'security'];
 const DEFAULT_ROLE_PERMISSIONS = Object.fromEntries(
   ROLE_PERMISSION_PANELS.map(panel => [panel, 'hidden'])
 );
@@ -81,7 +104,7 @@ const DEFAULT_ROLE_PERMISSIONS = Object.fromEntries(
         menu: 'full', hours: 'full',
         settings: 'view', about: 'view',
         users: 'hidden', roles: 'hidden',
-        messages: 'view'
+        messages: 'view', security: 'hidden'
       }
     }];
     writeData(data2);
@@ -112,6 +135,14 @@ const DEFAULT_ROLE_PERMISSIONS = Object.fromEntries(
     writeData(data3);
     console.log('✓ Messages system initialised.');
   }
+
+  // ── Audit log migration ───────────────────────────────────────────────────
+  const data4 = readData();
+  if (!data4.logs) {
+    data4.logs = [];
+    writeData(data4);
+    console.log('✓ Audit log initialised.');
+  }
 })();
 
 // ── Middleware ──────────────────────────────────────────────────────────────
@@ -127,6 +158,19 @@ app.use(session({
 // ── Public API routes ───────────────────────────────────────────────────────
 app.use('/api',       require('./routes/api'));
 app.use('/api/admin', require('./routes/admin'));
+
+// ── Menu image upload ────────────────────────────────────────────────────────
+app.post('/api/admin/upload/menu-image',
+  (req, res, next) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    next();
+  },
+  uploadMenuImage.single('image'),
+  (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    res.json({ filename: req.file.filename });
+  }
+);
 
 // ── Admin HTML routes (auth-gated) ─────────────────────────────────────────
 
@@ -148,6 +192,7 @@ app.get('/admin', (req, res) => {
 app.use('/admin', express.static(path.join(__dirname, 'admin'), { index: false }));
 
 // ── Public static files ─────────────────────────────────────────────────────
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(path.join(__dirname), { index: false }));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/about', (req, res) => res.sendFile(path.join(__dirname, 'about.html')));

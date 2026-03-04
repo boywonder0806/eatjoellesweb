@@ -121,7 +121,9 @@
           "name": "Bruschetta al Pomodoro",
           "description": "Grilled bread, fresh tomatoes, basil, extra virgin olive oil",
           "price": "$12",
-          "sort_order": 0
+          "sort_order": 0,
+          "image": "1772653451940-36200.png",
+          "available": false
         },
         {
           "id": 2,
@@ -164,7 +166,8 @@
           "name": "Pan-Seared Salmon",
           "description": "Atlantic salmon, lemon beurre blanc, asparagus, wild rice",
           "price": "$36",
-          "sort_order": 1
+          "sort_order": 1,
+          "image": "1772653881175-845375.png"
         },
         {
           "id": 7,
@@ -263,7 +266,8 @@
         "about": "hidden",
         "users": "view",
         "roles": "hidden",
-        "messages": "hidden"
+        "messages": "hidden",
+        "security": "hidden"
       },
       "color": "#ffffff"
     },
@@ -278,7 +282,8 @@
         "about": "full",
         "messages": "full",
         "users": "full",
-        "roles": "full"
+        "roles": "full",
+        "security": "view"
       },
       "color": "#00ffee"
     }
@@ -301,6 +306,269 @@
       "message": "I ENJOYED THE FOOD SO MUCH! THANK YOU FOR THE GREAT EXPIERENCE!",
       "read": true,
       "createdAt": "2026-03-04T06:47:49.341Z"
+    }
+  ],
+  "logs": [
+    {
+      "id": 1,
+      "timestamp": "2026-03-04T19:22:58.530Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "security.clear_logs",
+      "details": "Audit log cleared by 'admin'"
+    },
+    {
+      "id": 2,
+      "timestamp": "2026-03-04T19:23:05.716Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "user.update",
+      "details": "Updated user 'ijoyne1': unlocked"
+    },
+    {
+      "id": 3,
+      "timestamp": "2026-03-04T19:23:06.565Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "user.update",
+      "details": "Updated user 'ijoyne1': username, email, role → System Developer, firstName, lastName, phone"
+    },
+    {
+      "id": 4,
+      "timestamp": "2026-03-04T19:23:55.368Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "role.update",
+      "details": "Updated permissions for role 'System Developer'"
+    },
+    {
+      "id": 5,
+      "timestamp": "2026-03-04T19:27:38.413Z",
+      "username": "(system)",
+      "role": "",
+      "ip": "::1",
+      "action": "auth.login_failed",
+      "details": "Failed login attempt for 'admin' (attempt 1/3)"
+    },
+    {
+      "id": 6,
+      "timestamp": "2026-03-04T19:27:42.127Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "auth.login",
+      "details": "User 'admin' logged in successfully"
+    },
+    {
+      "id": 7,
+      "timestamp": "2026-03-04T19:30:43.198Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "auth.login",
+      "details": "User 'admin' logged in successfully"
+    },
+    {
+      "id": 8,
+      "timestamp": "2026-03-04T19:31:02.919Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "auth.logout",
+      "details": "User 'admin' signed out"
+    },
+    {
+      "id": 9,
+      "timestamp": "2026-03-04T19:31:30.867Z",
+      "username": "(system)",
+      "role": "",
+      "ip": "::1",
+      "action": "auth.login_failed",
+      "details": "Failed login attempt for unknown username 'LET ME IN'"
+    },
+    {
+      "id": 10,
+      "timestamp": "2026-03-04T19:31:36.906Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "auth.login",
+      "details": "User 'admin' logged in successfully"
+    },
+    {
+      "id": 11,
+      "timestamp": "2026-03-04T19:32:58.891Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Tiramisu' in menu 'Regular Menu'"
+    },
+    {
+      "id": 12,
+      "timestamp": "2026-03-04T19:32:59.119Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Tiramisu' in menu 'Regular Menu'"
+    },
+    {
+      "id": 13,
+      "timestamp": "2026-03-04T19:32:59.345Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Tiramisu' in menu 'Regular Menu'"
+    },
+    {
+      "id": 14,
+      "timestamp": "2026-03-04T19:32:59.518Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Tiramisu' in menu 'Regular Menu'"
+    },
+    {
+      "id": 15,
+      "timestamp": "2026-03-04T19:32:59.677Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Tiramisu' in menu 'Regular Menu'"
+    },
+    {
+      "id": 16,
+      "timestamp": "2026-03-04T19:32:59.855Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Tiramisu' in menu 'Regular Menu'"
+    },
+    {
+      "id": 17,
+      "timestamp": "2026-03-04T19:33:00.036Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Tiramisu' in menu 'Regular Menu'"
+    },
+    {
+      "id": 18,
+      "timestamp": "2026-03-04T19:33:00.238Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Tiramisu' in menu 'Regular Menu'"
+    },
+    {
+      "id": 19,
+      "timestamp": "2026-03-04T19:33:00.441Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Tiramisu' in menu 'Regular Menu'"
+    },
+    {
+      "id": 20,
+      "timestamp": "2026-03-04T19:33:00.622Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Tiramisu' in menu 'Regular Menu'"
+    },
+    {
+      "id": 21,
+      "timestamp": "2026-03-04T19:33:01.033Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Tiramisu' in menu 'Regular Menu'"
+    },
+    {
+      "id": 22,
+      "timestamp": "2026-03-04T19:33:37.180Z",
+      "username": "ijoyne1",
+      "role": "System Developer",
+      "ip": "::1",
+      "action": "auth.login",
+      "details": "User 'ijoyne1' logged in successfully"
+    },
+    {
+      "id": 23,
+      "timestamp": "2026-03-04T19:43:42.729Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "auth.login",
+      "details": "User 'admin' logged in successfully"
+    },
+    {
+      "id": 24,
+      "timestamp": "2026-03-04T19:43:51.328Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Bruschetta al Pomodoro' in menu 'Regular Menu'"
+    },
+    {
+      "id": 25,
+      "timestamp": "2026-03-04T19:44:13.213Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Bruschetta al Pomodoro' in menu 'Regular Menu'"
+    },
+    {
+      "id": 26,
+      "timestamp": "2026-03-04T19:45:19.681Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Bruschetta al Pomodoro' in menu 'Regular Menu'"
+    },
+    {
+      "id": 27,
+      "timestamp": "2026-03-04T19:47:22.136Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Pan-Seared Salmon' in menu 'Regular Menu'"
+    },
+    {
+      "id": 28,
+      "timestamp": "2026-03-04T19:50:57.403Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Pan-Seared Salmon' in menu 'Regular Menu'"
+    },
+    {
+      "id": 29,
+      "timestamp": "2026-03-04T19:51:22.612Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "menu.item_update",
+      "details": "Updated item 'Pan-Seared Salmon' in menu 'Regular Menu'"
     }
   ]
 }
