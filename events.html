@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Events — Joelle's Lounge</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/events.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ANNOUNCEMENT BANNER -->
+  <div class="site-banner hidden" id="siteBanner" role="alert">
+    <span class="site-banner__text" id="siteBannerText"></span>
+    <button class="site-banner__close" id="siteBannerClose" aria-label="Dismiss banner">&#x2715;</button>
+  </div>
+
+  <!-- NAV -->
+  <nav class="nav" id="navbar">
+    <div class="nav__logo">Joelle's Lounge</div>
+    <button class="nav__toggle" id="navToggle" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav__links" id="navLinks">
+      <li><a href="/about">About</a></li>
+      <li><a href="/#menu">Menu</a></li>
+      <li><a href="/#hours">Hours</a></li>
+      <li><a href="/events" class="nav__active">Events</a></li>
+      <li><a href="/#contact">Contact</a></li>
+      <li><a href="/#contact" class="nav__cta">Reserve a Table</a></li>
+    </ul>
+  </nav>
+
+  <!-- EVENTS HERO -->
+  <section class="ev-hero">
+    <div class="ev-hero__overlay"></div>
+    <div class="ev-hero__content">
+      <span class="section__label">At Joelle's Lounge</span>
+      <h1 class="ev-hero__title">Events &amp; Happenings</h1>
+      <p class="ev-hero__sub">Live music, special dinners, and unforgettable evenings — all in one place.</p>
+    </div>
+  </section>
+
+  <!-- CALENDAR SECTION -->
+  <section class="ev-section">
+    <div class="ev-container">
+
+      <!-- Calendar -->
+      <div class="ev-cal">
+        <div class="ev-cal__header">
+          <button class="ev-cal__nav" id="calPrev" aria-label="Previous month">&#8592;</button>
+          <span class="ev-cal__month-label" id="calMonthLabel"></span>
+          <button class="ev-cal__nav" id="calNext" aria-label="Next month">&#8594;</button>
+        </div>
+
+        <div class="ev-cal__grid">
+          <div class="ev-cal__dow">Su</div>
+          <div class="ev-cal__dow">Mo</div>
+          <div class="ev-cal__dow">Tu</div>
+          <div class="ev-cal__dow">We</div>
+          <div class="ev-cal__dow">Th</div>
+          <div class="ev-cal__dow">Fr</div>
+          <div class="ev-cal__dow">Sa</div>
+          <div class="ev-cal__days" id="calDays"></div>
+        </div>
+      </div>
+
+      <!-- Event detail panel -->
+      <div class="ev-panel" id="evPanel">
+        <div class="ev-panel__header">
+          <span class="ev-panel__date-label" id="evPanelDate">Upcoming Events</span>
+          <button class="ev-panel__close hidden" id="evPanelClose" aria-label="Close">&#x2715;</button>
+        </div>
+        <div class="ev-panel__list" id="evPanelList">
+          <!-- cards injected here -->
+        </div>
+        <div class="ev-panel__empty hidden" id="evPanelEmpty">
+          <p>No events on this day.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <p class="footer__logo">Joelle's Lounge</p>
+        <p>Fresh ingredients. Handcrafted dishes.<br/>Unforgettable moments.</p>
+      </div>
+      <div class="footer__links">
+        <a href="/about">About</a>
+        <a href="/#menu">Menu</a>
+        <a href="/#hours">Hours</a>
+        <a href="/events">Events</a>
+        <a href="/#contact">Contact</a>
+      </div>
+      <div class="footer__social">
+        <a href="#" aria-label="Instagram">Instagram</a>
+        <a href="#" aria-label="Facebook">Facebook</a>
+        <a href="#" aria-label="Yelp">Yelp</a>
+      </div>
+    </div>
+    <p class="footer__copy">&copy; 2026 Joelle's Lounge. All rights reserved.</p>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/events.js"></script>
+</body>
+</html>

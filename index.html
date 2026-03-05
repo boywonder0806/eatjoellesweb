@@ -26,6 +26,7 @@
       <li><a href="/about">About</a></li>
       <li><a href="#menu">Menu</a></li>
       <li><a href="#hours">Hours</a></li>
+      <li><a href="/events">Events</a></li>
       <li><a href="#contact">Contact</a></li>
       <li><a href="#contact" class="nav__cta">Reserve a Table</a></li>
     </ul>
@@ -38,6 +39,10 @@
       <p class="hero__tagline">Fine dining, warm atmosphere</p>
       <h1 class="hero__title">Joelle's Lounge</h1>
       <p class="hero__sub">Fresh ingredients. Handcrafted dishes. Unforgettable moments.</p>
+      <div class="hero__status" id="heroStatus" style="display:none">
+        <span class="hero__status-badge" id="heroStatusBadge"></span>
+        <span class="hero__status-hours" id="heroStatusHours"></span>
+      </div>
       <div class="hero__actions">
         <a href="#menu" class="btn btn--primary">View Menu</a>
         <a href="#contact" class="btn btn--outline">Reserve a Table</a>
@@ -81,6 +86,10 @@
       <div class="hours__text">
         <span class="section__label">Visit Us</span>
         <h2 class="section__title">Hours & Location</h2>
+        <div class="hours__status-bar" id="hoursStatusBar" style="display:none">
+          <span id="hoursStatusBadge"></span>
+          <span id="hoursStatusText"></span>
+        </div>
         <div class="hours__table" id="hours-table"></div>
         <div class="hours__address">
           <p>📍 <span id="contact-address">123 Main Street, Your City, ST 00000</span></p>
@@ -89,9 +98,13 @@
         </div>
       </div>
       <div class="hours__map">
-        <div class="hours__map-placeholder">
-          <span>🗺️ Embed your Google Map here</span>
-        </div>
+        <iframe
+          class="hours__map-embed"
+          loading="lazy"
+          allowfullscreen
+          referrerpolicy="no-referrer-when-downgrade"
+          src="https://www.google.com/maps/embed/v1/place?q=place_id:ChIJ-cvlxVO7JoYRH2HHuqqRgwU&key=AIzaSyDB30vYCKf-saRvsN97gbAq6AbUTIZJyEs"
+        ></iframe>
       </div>
     </div>
   </section>
@@ -139,6 +152,7 @@
         <a href="#about">About</a>
         <a href="#menu">Menu</a>
         <a href="#hours">Hours</a>
+        <a href="/events">Events</a>
         <a href="#contact">Contact</a>
       </div>
       <div class="footer__social">

@@ -28,7 +28,7 @@ const uploadMenuImage = multer({
 });
 
 const app = express();
-const ROLE_PERMISSION_PANELS = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles', 'security'];
+const ROLE_PERMISSION_PANELS = ['menu', 'hours', 'settings', 'about', 'messages', 'events', 'users', 'roles', 'security'];
 const DEFAULT_ROLE_PERMISSIONS = Object.fromEntries(
   ROLE_PERMISSION_PANELS.map(panel => [panel, 'hidden'])
 );
@@ -172,6 +172,39 @@ app.post('/api/admin/upload/menu-image',
   }
 );
 
+// ── Event image upload ───────────────────────────────────────────────────────
+const eventUploadDir = path.join(__dirname, 'uploads', 'events');
+if (!fs.existsSync(eventUploadDir)) fs.mkdirSync(eventUploadDir, { recursive: true });
+
+const eventImageStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, eventUploadDir),
+  filename:    (_req, file,  cb) => {
+    const ext  = path.extname(file.originalname).toLowerCase();
+    const safe = Date.now() + '-' + Math.round(Math.random() * 1e6) + ext;
+    cb(null, safe);
+  }
+});
+const uploadEventImage = multer({
+  storage:    eventImageStorage,
+  limits:     { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Only image files are allowed'));
+  }
+});
+
+app.post('/api/admin/upload/event-image',
+  (req, res, next) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    next();
+  },
+  uploadEventImage.single('image'),
+  (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    res.json({ url: '/uploads/events/' + req.file.filename });
+  }
+);
+
 // ── Admin HTML routes (auth-gated) ─────────────────────────────────────────
 
 // Redirect direct file access back through the auth-gated route
@@ -195,7 +228,36 @@ app.use('/admin', express.static(path.join(__dirname, 'admin'), { index: false }
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(path.join(__dirname), { index: false }));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/about', (req, res) => res.sendFile(path.join(__dirname, 'about.html')));
+app.get('/about',  (req, res) => res.sendFile(path.join(__dirname, 'about.html')));
+app.get('/events', (req, res) => res.sendFile(path.join(__dirname, 'events.html')));
+
+// ── Banner expiry watcher ───────────────────────────────────────────────────
+function clearExpiredBanner() {
+  const data = readData();
+  const s    = data.settings;
+  if (s && s.banner_enabled && s.banner_expiry && new Date(s.banner_expiry) <= new Date()) {
+    s.banner_enabled     = false;
+    s.banner_expiry      = '';
+    s.banner_text        = '';
+    s.banner_type        = 'info';
+    s.banner_dismissable = true;
+    writeData(data);
+    console.log('✓ Announcement banner auto-cleared (expired).');
+  }
+}
+setInterval(clearExpiredBanner, 30 * 1000); // check every 30 seconds
+
+// ── Closure auto-lift watcher ────────────────────────────────────────────────
+setInterval(() => {
+  const data = readData();
+  const c    = data.closure;
+  if (c && c.active && c.until && new Date(c.until) <= new Date()) {
+    c.active = false;
+    c.until  = '';
+    writeData(data);
+    console.log('✓ Temporary closure auto-lifted (expired).');
+  }
+}, 30 * 1000);
 
 // ── Start ───────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;

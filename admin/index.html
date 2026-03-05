@@ -41,7 +41,11 @@
           <i class="nav-icon">&#9881;</i> Settings
         </button>
 
-        <span class="sidebar__section" id="sidebarAdminSection" style="margin-top:0.5rem">Admin</span>
+        <button class="sidebar__link" data-panel="events" data-permission-panel="events">
+          <i class="nav-icon">&#128197;</i> Event Calendar
+        </button>
+
+                <span class="sidebar__section" id="sidebarAdminSection" style="margin-top:0.5rem">Admin</span>
         <button class="sidebar__link" data-panel="users" data-permission-panel="users">
           <i class="nav-icon">&#128101;</i> Users
         </button>
@@ -307,6 +311,7 @@
           <table class="data-table">
             <thead>
               <tr>
+                <th style="width:28px"></th>
                 <th>Days</th>
                 <th>Hours</th>
                 <th style="width:110px">Actions</th>
@@ -314,6 +319,50 @@
             </thead>
             <tbody id="hoursTbody"></tbody>
           </table>
+        </div>
+
+        <!-- Temporary Closure -->
+        <div class="closure-card" id="closureCard">
+          <div class="closure-card__header">
+            <div class="closure-card__meta">
+              <span class="closure-card__title">Temporary Closure Override</span>
+              <p class="closure-card__sub">Immediately marks the restaurant as closed on the public site, overriding normal hours.</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="closureActive" />
+              <span class="toggle-track"><span class="toggle-knob"></span></span>
+            </label>
+          </div>
+          <div class="closure-card__body" id="closureBody">
+            <div class="closure-card__fields">
+              <div class="field">
+                <label for="closureReason">Reason</label>
+                <select id="closureReason">
+                  <option value="power_outage">⚡ Power Outage</option>
+                  <option value="weather">🌩️ Severe Weather</option>
+                  <option value="family_emergency">❤️ Family Emergency</option>
+                  <option value="staff_emergency">🚨 Staff Emergency</option>
+                  <option value="private_event">🎉 Private Event</option>
+                  <option value="maintenance">🔧 Maintenance / Repairs</option>
+                  <option value="holiday">🎄 Holiday</option>
+                  <option value="other">✏️ Other</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="closureUntil">Auto-lift at (optional, CST)</label>
+                <input type="datetime-local" id="closureUntil" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="closureMessage">Public message (optional)</label>
+              <textarea id="closureMessage" rows="2" placeholder="e.g. We'll be back tomorrow at 3 PM. Thank you for your patience!"></textarea>
+            </div>
+            <div class="closure-card__actions">
+              <button class="btn-gold" id="saveClosureBtn">Activate Closure</button>
+              <button class="btn-ghost btn-ghost--danger" id="liftClosureBtn">Lift Closure</button>
+              <span class="save-msg" id="closureMsg"></span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -329,37 +378,19 @@
 
         <div class="settings-cards-grid">
 
-          <!-- Card 1: Contact Info -->
+          <!-- Card 1: Announcement Banner -->
           <div class="settings-card">
             <div class="settings-card-header">
-              <span class="settings-card-title">Contact Info</span>
-              <p class="settings-card-sub">Shown in the Hours &amp; Contact section of the public site.</p>
-            </div>
-            <form id="contactForm">
-              <div class="field">
-                <label for="s-address">Address</label>
-                <input type="text" id="s-address" name="address" placeholder="123 Main Street, Your City, ST 00000" />
+              <div class="settings-card-header__row">
+                <div>
+                  <span class="settings-card-title">Announcement Banner</span>
+                  <p class="settings-card-sub">Show a dismissable message bar at the top of the public site.</p>
+                </div>
+                <div class="banner-countdown" id="bannerCountdown" style="display:none">
+                  <span class="banner-countdown__label">Clears in</span>
+                  <span class="banner-countdown__timer" id="bannerCountdownTimer">—</span>
+                </div>
               </div>
-              <div class="field">
-                <label for="s-phone">Phone</label>
-                <input type="tel" id="s-phone" name="phone" placeholder="(555) 123-4567" />
-              </div>
-              <div class="field">
-                <label for="s-email">Email</label>
-                <input type="email" id="s-email" name="email" placeholder="hello@joelleslounge.com" />
-              </div>
-              <div class="settings-form__actions">
-                <button type="submit" class="btn-gold">Save</button>
-                <span class="save-msg" id="contactMsg"></span>
-              </div>
-            </form>
-          </div>
-
-          <!-- Card 2: Announcement Banner -->
-          <div class="settings-card">
-            <div class="settings-card-header">
-              <span class="settings-card-title">Announcement Banner</span>
-              <p class="settings-card-sub">Show a dismissable message bar at the top of the public site.</p>
             </div>
             <form id="bannerForm">
               <div class="settings-toggles-row">
@@ -390,9 +421,41 @@
                 <label for="b-text">Message text</label>
                 <textarea id="b-text" rows="3" placeholder="e.g. Join us this Friday for live jazz from 7 PM!"></textarea>
               </div>
+              <div class="field">
+                <label for="b-expiry">Auto-clear after (optional, CST)</label>
+                <input type="datetime-local" id="b-expiry" />
+                <p class="field-hint" id="b-expiry-hint"></p>
+              </div>
               <div class="settings-form__actions">
                 <button type="submit" class="btn-gold">Save</button>
+                <button type="button" class="btn-ghost" id="b-clear-expiry">Clear Expiry</button>
                 <span class="save-msg" id="bannerMsg"></span>
+              </div>
+            </form>
+          </div>
+
+          <!-- Card 2: Contact Info -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <span class="settings-card-title">Contact Info</span>
+              <p class="settings-card-sub">Shown in the Hours &amp; Contact section of the public site.</p>
+            </div>
+            <form id="contactForm">
+              <div class="field">
+                <label for="s-address">Address</label>
+                <input type="text" id="s-address" name="address" placeholder="123 Main Street, Your City, ST 00000" />
+              </div>
+              <div class="field">
+                <label for="s-phone">Phone</label>
+                <input type="tel" id="s-phone" name="phone" placeholder="(555) 123-4567" />
+              </div>
+              <div class="field">
+                <label for="s-email">Email</label>
+                <input type="email" id="s-email" name="email" placeholder="hello@joelleslounge.com" />
+              </div>
+              <div class="settings-form__actions">
+                <button type="submit" class="btn-gold">Save</button>
+                <span class="save-msg" id="contactMsg"></span>
               </div>
             </form>
           </div>
@@ -649,7 +712,110 @@
         </div>
       </section>
 
-    </main>
+  
+    <!-- ── Events Panel ─────────────────────── -->
+    <section class="panel" id="panel-events">
+      <div class="panel__header">
+        <div>
+          <span class="panel__eyebrow">Manage</span>
+          <h1 class="panel__title">Event Calendar</h1>
+          <p class="panel__sub">Create and manage events shown on the public Events page.</p>
+        </div>
+        <button class="btn-gold" id="addEventBtn">+ Add Event</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:110px">Date</th>
+              <th>Title</th>
+              <th style="width:160px">Time</th>
+              <th style="width:80px">Featured</th>
+              <th style="width:90px">Cancelled</th>
+              <th style="width:110px">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="eventsTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Event Modal ──────────────────────── -->
+    <div class="ev-modal-backdrop hidden" id="evModalBackdrop">
+      <div class="ev-modal" id="evModal" role="dialog" aria-modal="true" aria-labelledby="evModalTitle">
+        <div class="ev-modal__header">
+          <h2 class="ev-modal__title" id="evModalTitle">Add Event</h2>
+          <button class="ev-modal__close" id="evModalClose" aria-label="Close">&times;</button>
+        </div>
+        <div class="ev-modal__body">
+          <input type="hidden" id="evId" />
+
+          <div class="ev-modal__row">
+            <div class="ev-modal__field ev-modal__field--grow">
+              <label for="evTitle">Event Title <span class="req">*</span></label>
+              <input type="text" id="evTitle" placeholder="e.g. Live Jazz Night" />
+            </div>
+            <div class="ev-modal__field">
+              <label for="evDate">Date <span class="req">*</span></label>
+              <input type="date" id="evDate" />
+            </div>
+          </div>
+
+          <div class="ev-modal__row">
+            <div class="ev-modal__field">
+              <label for="evStartTime">Start Time</label>
+              <input type="time" id="evStartTime" />
+            </div>
+            <div class="ev-modal__field">
+              <label for="evEndTime">End Time</label>
+              <input type="time" id="evEndTime" />
+            </div>
+            <div class="ev-modal__field ev-modal__field--featured">
+              <label>Featured</label>
+              <label class="toggle-switch" style="margin-top:0.5rem">
+                <input type="checkbox" id="evFeatured" />
+                <span class="toggle-track"><span class="toggle-knob"></span></span>
+              </label>
+            </div>
+            <div class="ev-modal__field ev-modal__field--featured">
+              <label>Cancelled</label>
+              <label class="toggle-switch" style="margin-top:0.5rem">
+                <input type="checkbox" id="evCancelled" />
+                <span class="toggle-track"><span class="toggle-knob toggle-knob--danger"></span></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="ev-modal__field">
+            <label for="evDesc">Description</label>
+            <textarea id="evDesc" rows="3" placeholder="Describe the event..."></textarea>
+          </div>
+
+          <div class="ev-modal__field">
+            <label for="evImage">Event Photo</label>
+            <div class="ev-img-upload" id="evImgUpload">
+              <div class="ev-img-upload__preview" id="evImgPreview" style="display:none">
+                <img id="evImgPreviewImg" src="" alt="preview" />
+                <button type="button" class="ev-img-upload__remove" id="evImgRemove" title="Remove image">&times;</button>
+              </div>
+              <label class="ev-img-upload__label" id="evImgLabel" for="evImage">
+                <span>&#128247;</span>
+                <span>Click to upload image</span>
+                <span class="ev-img-upload__hint">JPEG, PNG, WebP — max 8 MB</span>
+              </label>
+              <input type="file" id="evImage" accept="image/jpeg,image/png,image/webp,image/gif" />
+            </div>
+          </div>
+        </div>
+        <div class="ev-modal__footer">
+          <button class="btn-cancel" id="evModalCancel">Cancel</button>
+          <button class="btn-gold" id="evModalSave">Save Event</button>
+          <span class="save-msg" id="evSaveMsg"></span>
+        </div>
+      </div>
+    </div>
+  </main>
   </div>
 
   <!-- ── Change Password Modal ─────────────────── -->

@@ -10,12 +10,12 @@
       "id": 3,
       "days": "Tuesday",
       "time_range": "3:00 PM - 10:00 PM",
-      "sort_order": 2
+      "sort_order": 1
     },
     {
       "id": 4,
       "days": "Wednesday",
-      "time_range": "3:00 PM - 10:00 PM",
+      "time_range": "3:00 PM - 11:59 PM",
       "sort_order": 2
     },
     {
@@ -47,10 +47,11 @@
     "address": "123 Main Street, Your City, ST 00000",
     "phone": "(555) 123-4567",
     "email": "hello@eatjoelles.com",
-    "banner_enabled": true,
-    "banner_text": "Something is brewing!",
-    "banner_type": "warning",
-    "banner_dismissable": false
+    "banner_enabled": false,
+    "banner_text": "",
+    "banner_type": "info",
+    "banner_dismissable": true,
+    "banner_expiry": ""
   },
   "about_page": {
     "headline": "About Joelle's Lounge",
@@ -110,7 +111,7 @@
       "active": true,
       "mustChangePassword": false,
       "createdAt": "2026-03-03T19:14:40.532Z",
-      "firstName": "System",
+      "firstName": "System Admin",
       "lastName": "Admin",
       "phone": "",
       "profilePicture": "",
@@ -302,7 +303,8 @@
         "messages": "full",
         "users": "view",
         "roles": "hidden",
-        "security": "hidden"
+        "security": "hidden",
+        "events": "hidden"
       },
       "color": "#ffffff",
       "isSystemAdmin": false
@@ -319,7 +321,8 @@
         "messages": "full",
         "users": "full",
         "roles": "full",
-        "security": "full"
+        "security": "full",
+        "events": "hidden"
       },
       "color": "#00ffee",
       "isSystemAdmin": true
@@ -337,7 +340,8 @@
         "messages": "full",
         "users": "full",
         "roles": "full",
-        "security": "full"
+        "security": "full",
+        "events": "hidden"
       },
       "isSystemAdmin": true
     }
@@ -1279,6 +1283,366 @@
       "ip": "::1",
       "action": "user.change_password",
       "details": "User 'ijoyne1' changed their own password"
+    },
+    {
+      "id": 105,
+      "timestamp": "2026-03-05T05:07:05.148Z",
+      "username": "ijoyne1",
+      "role": "System Developer",
+      "ip": "::1",
+      "action": "settings.update",
+      "details": "Updated site settings"
+    },
+    {
+      "id": 106,
+      "timestamp": "2026-03-05T05:08:03.461Z",
+      "username": "ijoyne1",
+      "role": "System Developer",
+      "ip": "::1",
+      "action": "settings.update",
+      "details": "Updated site settings"
+    },
+    {
+      "id": 107,
+      "timestamp": "2026-03-05T05:08:26.534Z",
+      "username": "ijoyne1",
+      "role": "System Developer",
+      "ip": "::1",
+      "action": "settings.update",
+      "details": "Updated site settings"
+    },
+    {
+      "id": 108,
+      "timestamp": "2026-03-05T05:12:01.915Z",
+      "username": "ijoyne1",
+      "role": "System Developer",
+      "ip": "::1",
+      "action": "settings.update",
+      "details": "Updated site settings"
+    },
+    {
+      "id": 109,
+      "timestamp": "2026-03-05T05:18:23.894Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "auth.login",
+      "details": "User 'admin' logged in successfully"
+    },
+    {
+      "id": 110,
+      "timestamp": "2026-03-05T05:18:36.806Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "settings.update",
+      "details": "Updated site settings"
+    },
+    {
+      "id": 111,
+      "timestamp": "2026-03-05T05:19:08.938Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "settings.update",
+      "details": "Updated site settings"
+    },
+    {
+      "id": 112,
+      "timestamp": "2026-03-05T05:23:07.347Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "settings.update",
+      "details": "Updated site settings"
+    },
+    {
+      "id": 113,
+      "timestamp": "2026-03-05T05:23:17.487Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "settings.update",
+      "details": "Updated site settings"
+    },
+    {
+      "id": 114,
+      "timestamp": "2026-03-05T05:47:39.909Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "hours.update",
+      "details": "Updated hours row: Wednesday — 3:00 PM - 11:59PM"
+    },
+    {
+      "id": 115,
+      "timestamp": "2026-03-05T05:47:42.765Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "hours.update",
+      "details": "Updated hours row: Wednesday — 3:00 PM - 11:59 PM"
+    },
+    {
+      "id": 116,
+      "timestamp": "2026-03-05T07:36:21.367Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "auth.login",
+      "details": "User 'admin' logged in successfully"
+    },
+    {
+      "id": 117,
+      "timestamp": "2026-03-05T07:37:08.457Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "closure.update",
+      "details": "Temporary closure activated: power_outage"
+    },
+    {
+      "id": 118,
+      "timestamp": "2026-03-05T07:37:40.559Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "closure.update",
+      "details": "Temporary closure lifted"
+    },
+    {
+      "id": 119,
+      "timestamp": "2026-03-05T07:37:42.650Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "closure.update",
+      "details": "Temporary closure lifted"
+    },
+    {
+      "id": 120,
+      "timestamp": "2026-03-05T07:37:44.156Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "closure.update",
+      "details": "Temporary closure lifted"
+    },
+    {
+      "id": 121,
+      "timestamp": "2026-03-05T07:37:47.255Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "closure.update",
+      "details": "Temporary closure activated: power_outage"
+    },
+    {
+      "id": 122,
+      "timestamp": "2026-03-05T07:37:55.153Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "closure.update",
+      "details": "Temporary closure lifted"
+    },
+    {
+      "id": 123,
+      "timestamp": "2026-03-05T07:37:56.790Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "closure.update",
+      "details": "Temporary closure lifted"
+    },
+    {
+      "id": 124,
+      "timestamp": "2026-03-05T07:55:37.110Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "hours.update",
+      "details": "Updated hours row: Thursday — 2:00 AM - 10:00 PM"
+    },
+    {
+      "id": 125,
+      "timestamp": "2026-03-05T07:56:36.850Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "hours.update",
+      "details": "Updated hours row: Thursday — 3:00 PM - 10:00 PM"
+    },
+    {
+      "id": 126,
+      "timestamp": "2026-03-05T08:04:55.888Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "auth.login",
+      "details": "User 'admin' logged in successfully"
+    },
+    {
+      "id": 127,
+      "timestamp": "2026-03-05T08:05:20.867Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "hours.create",
+      "details": "Added hours row: Thursday — 11:00 PM - 11:30 PM"
+    },
+    {
+      "id": 128,
+      "timestamp": "2026-03-05T08:05:29.435Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "hours.delete",
+      "details": "Deleted hours row: Thursday"
+    },
+    {
+      "id": 129,
+      "timestamp": "2026-03-05T08:07:46.459Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "auth.login",
+      "details": "User 'admin' logged in successfully"
+    },
+    {
+      "id": 130,
+      "timestamp": "2026-03-05T08:07:53.185Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "hours.reorder",
+      "details": "Reordered hours rows"
+    },
+    {
+      "id": 131,
+      "timestamp": "2026-03-05T08:07:54.722Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "hours.reorder",
+      "details": "Reordered hours rows"
+    },
+    {
+      "id": 132,
+      "timestamp": "2026-03-05T08:10:09.139Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "hours.reorder",
+      "details": "Reordered hours rows"
+    },
+    {
+      "id": 133,
+      "timestamp": "2026-03-05T08:10:24.515Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "hours.reorder",
+      "details": "Reordered hours rows"
+    },
+    {
+      "id": 134,
+      "timestamp": "2026-03-05T08:10:26.425Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "hours.reorder",
+      "details": "Reordered hours rows"
+    },
+    {
+      "id": 135,
+      "timestamp": "2026-03-05T08:10:55.528Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "hours.reorder",
+      "details": "Reordered hours rows"
+    },
+    {
+      "id": 136,
+      "timestamp": "2026-03-05T08:15:20.012Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "user.update_profile",
+      "details": "User 'admin' updated their profile"
+    },
+    {
+      "id": 137,
+      "timestamp": "2026-03-05T08:15:41.873Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "user.update_profile",
+      "details": "User 'admin' updated their profile"
+    },
+    {
+      "id": 138,
+      "timestamp": "2026-03-05T08:15:46.359Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "user.update_profile",
+      "details": "User 'admin' updated their profile"
+    },
+    {
+      "id": 139,
+      "timestamp": "2026-03-05T08:36:44.043Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "auth.login",
+      "details": "User 'admin' logged in successfully"
+    },
+    {
+      "id": 140,
+      "timestamp": "2026-03-05T08:38:11.185Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "events.create",
+      "details": "Created event: Live Jazz Night on 2026-03-06"
+    },
+    {
+      "id": 141,
+      "timestamp": "2026-03-05T08:43:07.392Z",
+      "username": "(system)",
+      "role": "",
+      "ip": "::1",
+      "action": "auth.login_failed",
+      "details": "Failed login attempt for unknown username 'joelles2026'"
+    },
+    {
+      "id": 142,
+      "timestamp": "2026-03-05T08:43:14.947Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "auth.login",
+      "details": "User 'admin' logged in successfully"
+    },
+    {
+      "id": 143,
+      "timestamp": "2026-03-05T08:43:22.880Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "events.update",
+      "details": "Updated event: Live Jazz Night"
+    },
+    {
+      "id": 144,
+      "timestamp": "2026-03-05T08:54:52.831Z",
+      "username": "admin",
+      "role": "admin",
+      "ip": "::1",
+      "action": "events.update",
+      "details": "Updated event: Live Jazz Night"
     }
   ],
   "toast": {
@@ -1286,5 +1650,25 @@
     "clientId": "",
     "clientSecret": "",
     "restaurantGuid": ""
-  }
+  },
+  "closure": {
+    "active": false,
+    "reason": "power_outage",
+    "message": "Closed due to uncontrolable power outage!",
+    "until": ""
+  },
+  "events": [
+    {
+      "id": 1,
+      "title": "Live Jazz Night",
+      "date": "2026-03-06",
+      "startTime": "6:00 PM",
+      "endTime": "10:00 PM",
+      "description": "Join us for live jazz and great good brought to you by your favorite local jazz artist jame feet!",
+      "image": "/uploads/events/1772700201981-534664.jpg",
+      "featured": true,
+      "createdAt": "2026-03-05T08:38:11.183Z",
+      "cancelled": true
+    }
+  ]
 }

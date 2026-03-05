@@ -47,6 +47,7 @@ fetch('/api/admin/check')
     if (canView('about'))  { loadAboutPage(); loadTeam(); }
     if (canView('messages'))  loadMessages();
     if (canView('security'))  loadLogs();
+    if (canView('events'))    loadEvents();
     loadRoles(); // always load for badge colors; management UI only visible to admin
   })
   .catch(() => window.location.href = '/admin/login');
@@ -232,7 +233,7 @@ function updateDashboardStatus(now) {
 
 // ── Role gating ──────────────────────────────
 function applyRoleGating(data) {
-  const PANELS  = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles', 'security'];
+  const PANELS  = ['menu', 'hours', 'settings', 'about', 'messages', 'events', 'users', 'roles', 'security'];
   const isAdmin = data.role === 'admin';
   const perms   = data.permissions; // null = admin
 
@@ -557,7 +558,9 @@ document.querySelectorAll('.sidebar__link').forEach(btn => {
     document.querySelectorAll('.sidebar__link').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+    const panelId = btn.dataset.panel;
+    document.getElementById('panel-' + panelId).classList.add('active');
+    if (panelId === 'events') loadEvents();
   });
 });
 
@@ -1191,12 +1194,127 @@ async function loadHours() {
   const hours = await res.json();
   _dashHours  = hours; // keep dashboard status in sync
   renderHoursTable(hours);
+  loadClosure();
+}
+
+async function loadClosure() {
+  const res  = await fetch('/api/admin/closure');
+  if (!res.ok) return;
+  const c    = await res.json();
+  const activeEl  = document.getElementById('closureActive');
+  const reasonEl  = document.getElementById('closureReason');
+  const messageEl = document.getElementById('closureMessage');
+  const untilEl   = document.getElementById('closureUntil');
+  const saveBtn   = document.getElementById('saveClosureBtn');
+  if (!activeEl) return;
+
+  activeEl.checked    = !!c.active;
+  reasonEl.value      = c.reason  || 'power_outage';
+  messageEl.value     = c.message || '';
+
+  if (c.until) {
+    // Convert stored UTC to CST for datetime-local display
+    const exp = new Date(c.until);
+    const cstParts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Chicago',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    }).formatToParts(exp);
+    const p = Object.fromEntries(cstParts.map(x => [x.type, x.value]));
+    untilEl.value = `${p.year}-${p.month}-${p.day}T${p.hour === '24' ? '00' : p.hour}:${p.minute}`;
+  } else {
+    untilEl.value = '';
+  }
+
+  _updateClosureCardState(!!c.active);
+  saveBtn.textContent = c.active ? 'Update Closure' : 'Activate Closure';
+}
+
+function _updateClosureCardState(active) {
+  const card = document.getElementById('closureCard');
+  if (!card) return;
+  if (active) {
+    card.classList.add('closure-card--active');
+  } else {
+    card.classList.remove('closure-card--active');
+  }
+}
+
+document.getElementById('closureActive')?.addEventListener('change', function () {
+  _updateClosureCardState(this.checked);
+  const saveBtn = document.getElementById('saveClosureBtn');
+  if (saveBtn) saveBtn.textContent = this.checked ? 'Activate Closure' : 'Save';
+});
+
+document.getElementById('saveClosureBtn')?.addEventListener('click', async () => {
+  const payload = {
+    active:  document.getElementById('closureActive').checked,
+    reason:  document.getElementById('closureReason').value,
+    message: document.getElementById('closureMessage').value.trim(),
+    until:   _cstInputToIso(document.getElementById('closureUntil').value)
+  };
+  const res = await fetch('/api/admin/closure', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const msg = document.getElementById('closureMsg');
+  if (res.ok) {
+    showMsg(msg, payload.active ? '✓ Closure activated' : '✓ Saved');
+    document.getElementById('saveClosureBtn').textContent = payload.active ? 'Update Closure' : 'Activate Closure';
+  } else {
+    showMsg(msg, '✗ Failed', true);
+  }
+});
+
+document.getElementById('liftClosureBtn')?.addEventListener('click', async () => {
+  const res = await fetch('/api/admin/closure', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ active: false, until: '' })
+  });
+  const msg = document.getElementById('closureMsg');
+  if (res.ok) {
+    document.getElementById('closureActive').checked = false;
+    _updateClosureCardState(false);
+    document.getElementById('saveClosureBtn').textContent = 'Activate Closure';
+    showMsg(msg, '✓ Closure lifted');
+  } else {
+    showMsg(msg, '✗ Failed', true);
+  }
+});
+
+const _ADMIN_DAY_NAMES = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+function _adminRowMatchesToday(daysStr) {
+  const today = _ADMIN_DAY_NAMES[new Date().getDay()];
+  const s     = daysStr.toLowerCase().trim();
+  const abbr  = d => _ADMIN_DAY_NAMES.find(n => n.startsWith(d.trim().slice(0,3)));
+  // comma-separated list
+  if (s.includes(',')) return s.split(',').map(abbr).includes(today);
+  // range with dash/en-dash/em-dash
+  const rangeMatch = s.match(/^(\w+)\s*[–—-]\s*(\w+)$/);
+  if (rangeMatch) {
+    const from = abbr(rangeMatch[1]);
+    const to   = abbr(rangeMatch[2]);
+    if (!from || !to) return false;
+    const fi = _ADMIN_DAY_NAMES.indexOf(from);
+    const ti = _ADMIN_DAY_NAMES.indexOf(to);
+    const ci = _ADMIN_DAY_NAMES.indexOf(today);
+    if (fi <= ti) return ci >= fi && ci <= ti;
+    // week-wrap (e.g. Fri–Sun)
+    return ci >= fi || ci <= ti;
+  }
+  // single day
+  return abbr(s) === today;
 }
 
 function renderHoursTable(hours) {
   const tbody = document.getElementById('hoursTbody');
-  tbody.innerHTML = hours.map(row => `
-    <tr data-id="${row.id}">
+  tbody.innerHTML = hours.map(row => {
+    const isToday = _adminRowMatchesToday(row.days || '');
+    return `
+    <tr data-id="${row.id}" draggable="true"${isToday ? ' class="hours-row--today"' : ''}>
+      <td class="hours-drag-handle" title="Drag to reorder">
+        <span class="drag-dots"></span>
+      </td>
       <td>${esc(row.days)}</td>
       <td>${esc(row.time_range)}</td>
       <td>
@@ -1206,13 +1324,58 @@ function renderHoursTable(hours) {
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
+  _initHoursDrag(tbody);
+}
+
+function _initHoursDrag(tbody) {
+  let dragSrc = null;
+
+  tbody.querySelectorAll('tr[draggable]').forEach(tr => {
+    tr.addEventListener('dragstart', e => {
+      dragSrc = tr;
+      tr.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    tr.addEventListener('dragend', () => {
+      tr.classList.remove('dragging');
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+      const order = [...tbody.querySelectorAll('tr[data-id]')].map((r, i) => ({
+        id:         parseInt(r.dataset.id, 10),
+        sort_order: i
+      }));
+      fetch('/api/admin/hours/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(order)
+      });
+    });
+    tr.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (tr !== dragSrc) {
+        tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+        tr.classList.add('drag-over');
+      }
+    });
+    tr.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!dragSrc || dragSrc === tr) return;
+      const rows   = [...tbody.querySelectorAll('tr[data-id]')];
+      const srcIdx = rows.indexOf(dragSrc);
+      const tgtIdx = rows.indexOf(tr);
+      if (srcIdx < tgtIdx) tr.after(dragSrc);
+      else                  tr.before(dragSrc);
+    });
+  });
 }
 
 function editHoursRow(id, days, timeRange) {
   const tr = document.querySelector(`#hoursTbody tr[data-id="${id}"]`);
   tr.classList.add('editing');
   tr.innerHTML = `
+    <td class="hours-drag-handle"><span class="drag-dots"></span></td>
     <td><input data-field="days" value="${days}" /></td>
     <td><input data-field="time_range" value="${timeRange}" /></td>
     <td>
@@ -1287,6 +1450,64 @@ async function saveNewHoursRow(btn) {
 
 // ── SETTINGS ──────────────────────────────────
 
+let _bannerCountdownInterval = null;
+
+// Convert a "YYYY-MM-DDTHH:MM" string entered in CST to a UTC ISO string
+function _cstInputToIso(val) {
+  if (!val) return '';
+  const [datePart, timePart] = val.split('T');
+  const [y, mo, d] = datePart.split('-').map(Number);
+  const [h, mi]    = timePart.split(':').map(Number);
+  // Rough UTC anchor — close enough to determine the CST DST offset
+  const roughUtc = new Date(Date.UTC(y, mo - 1, d, h, mi));
+  const tzLabel  = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago', timeZoneName: 'shortOffset'
+  }).formatToParts(roughUtc).find(p => p.type === 'timeZoneName')?.value || 'GMT-6';
+  const m = tzLabel.match(/GMT([+-])(\d+)(?::(\d+))?/);
+  const offsetMs = m
+    ? (m[1] === '+' ? 1 : -1) * (parseInt(m[2]) * 60 + parseInt(m[3] || '0')) * 60000
+    : -6 * 3600000;
+  return new Date(roughUtc.getTime() - offsetMs).toISOString();
+}
+
+function _startBannerCountdown(expiryIso) {
+  const box     = document.getElementById('bannerCountdown');
+  const timerEl = document.getElementById('bannerCountdownTimer');
+  if (_bannerCountdownInterval) clearInterval(_bannerCountdownInterval);
+  if (!expiryIso) { box.style.display = 'none'; return; }
+
+  const exp = new Date(expiryIso);
+
+  function _fmt(ms) {
+    if (ms <= 0) return 'Expired';
+    const totalSec = Math.floor(ms / 1000);
+    const d = Math.floor(totalSec / 86400);
+    const h = Math.floor((totalSec % 86400) / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    const parts = [];
+    if (d) parts.push(`${d}d`);
+    if (h) parts.push(`${h}h`);
+    if (m) parts.push(`${m}m`);
+    parts.push(`${s}s`);
+    return parts.join(' ');
+  }
+
+  function _tick() {
+    const remaining = exp - new Date();
+    timerEl.textContent = _fmt(remaining);
+    if (remaining <= 0) {
+      clearInterval(_bannerCountdownInterval);
+      // Banner has expired — reload settings to reflect cleared state
+      loadSettings();
+    }
+  }
+
+  box.style.display = '';
+  _tick();
+  _bannerCountdownInterval = setInterval(_tick, 1000);
+}
+
 async function loadSettings() {
   const res  = await fetch('/api/admin/settings');
   const data = await res.json();
@@ -1297,6 +1518,36 @@ async function loadSettings() {
   document.getElementById('b-dismissable').checked = data.banner_dismissable !== false; // default true
   document.getElementById('b-text').value          = data.banner_text || '';
   document.getElementById('b-type').value          = data.banner_type || 'info';
+
+  // Expiry
+  const expiry     = data.banner_expiry || '';
+  const expiryEl   = document.getElementById('b-expiry');
+  const expiryHint = document.getElementById('b-expiry-hint');
+  // Convert UTC ISO to CST local string for datetime-local input (YYYY-MM-DDTHH:MM)
+  if (expiry) {
+    const exp = new Date(expiry);
+    // Format as YYYY-MM-DDTHH:MM in America/Chicago (CST/CDT)
+    const cstParts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Chicago',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    }).formatToParts(exp);
+    const p = Object.fromEntries(cstParts.map(x => [x.type, x.value]));
+    expiryEl.value = `${p.year}-${p.month}-${p.day}T${p.hour === '24' ? '00' : p.hour}:${p.minute}`;
+
+    const now = new Date();
+    if (exp <= now) {
+      expiryHint.textContent = `⚠ Expired — banner was auto-cleared on ${exp.toLocaleString('en-US', { timeZone: 'America/Chicago' })} CST`;
+      expiryHint.style.color = 'var(--danger, #e74c3c)';
+    } else {
+      expiryHint.textContent = `Clears on ${exp.toLocaleString('en-US', { timeZone: 'America/Chicago' })} CST`;
+      expiryHint.style.color = 'var(--muted)';
+    }
+  } else {
+    expiryEl.value         = '';
+    expiryHint.textContent = '';
+  }
+  _startBannerCountdown(expiry);
 
   // Load Toast config (admin only)
   try {
@@ -1327,17 +1578,36 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
 
 document.getElementById('bannerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const expiryVal = document.getElementById('b-expiry').value;
   const payload = {
     banner_enabled:     document.getElementById('b-enabled').checked,
     banner_dismissable: document.getElementById('b-dismissable').checked,
     banner_text:        document.getElementById('b-text').value.trim(),
-    banner_type:        document.getElementById('b-type').value
+    banner_type:        document.getElementById('b-type').value,
+    banner_expiry:      _cstInputToIso(expiryVal)
   };
   const res = await fetch('/api/admin/settings', {
     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
   });
   const msg = document.getElementById('bannerMsg');
-  if (res.ok) { showMsg(msg, '✓ Saved'); } else { showMsg(msg, '✗ Save failed', true); }
+  if (res.ok) {
+    showMsg(msg, '✓ Saved');
+    _startBannerCountdown(payload.banner_expiry);
+  } else {
+    showMsg(msg, '✗ Save failed', true);
+  }
+});
+
+document.getElementById('b-clear-expiry').addEventListener('click', async () => {
+  document.getElementById('b-expiry').value          = '';
+  document.getElementById('b-expiry-hint').textContent = '';
+  _startBannerCountdown('');
+  const res = await fetch('/api/admin/settings', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ banner_expiry: '' })
+  });
+  const msg = document.getElementById('bannerMsg');
+  if (res.ok) { showMsg(msg, '✓ Expiry cleared'); } else { showMsg(msg, '✗ Failed', true); }
 });
 
 document.getElementById('toastConfigForm').addEventListener('submit', async (e) => {
@@ -1676,7 +1946,7 @@ async function saveNewTeamMember(btn) {
 // ── ROLES ──────────────────────────────────────
 
 let allRoles = [];
-const ROLE_PERMISSION_PANELS = ['menu', 'hours', 'settings', 'about', 'messages', 'users', 'roles', 'security'];
+const ROLE_PERMISSION_PANELS = ['menu', 'hours', 'settings', 'about', 'messages', 'events', 'users', 'roles', 'security'];
 const ROLE_PERMISSION_LABELS = {
   menu: 'Menu Items',
   hours: 'Hours',
@@ -2004,4 +2274,190 @@ document.getElementById('clearLogsBtn')?.addEventListener('click', async () => {
   } else {
     showMsg(msg, '✗ Failed to clear log', true);
   }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EVENTS MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+let _allEvents = [];
+
+async function loadEvents() {
+  const res = await fetch('/api/admin/events');
+  if (!res.ok) return;
+  _allEvents = await res.json();
+  renderEventsTable(_allEvents);
+}
+
+function renderEventsTable(events) {
+  const tbody = document.getElementById('eventsTbody');
+  if (!tbody) return;
+  if (events.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">No events yet. Click &ldquo;+ Add Event&rdquo; to create one.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = events.map(ev => {
+    const d = new Date(ev.date + 'T12:00:00');
+    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const timeStr = [ev.startTime, ev.endTime].filter(Boolean).join(' – ') || '—';
+    return `
+    <tr data-id="${ev.id}" class="${ev.cancelled ? 'ev-row--cancelled' : ''}">
+      <td style="white-space:nowrap">${esc(dateStr)}</td>
+      <td>
+        ${ev.image ? '<img src="' + esc(ev.image) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px;margin-right:8px;vertical-align:middle;opacity:' + (ev.cancelled ? '0.4' : '1') + '" />' : ''}
+        ${esc(ev.title)}
+      </td>
+      <td style="font-size:0.82rem;color:var(--muted)">${esc(timeStr)}</td>
+      <td>${ev.featured ? '<span class="ev-featured-badge">&#9733; Yes</span>' : '<span style="color:var(--muted);font-size:0.8rem">—</span>'}</td>
+      <td>${ev.cancelled ? '<span class="ev-cancelled-badge">&#10005; Yes</span>' : '<span style="color:var(--muted);font-size:0.8rem">—</span>'}</td>
+      <td style="text-align:right">
+        <div class="action-btns" style="justify-content:flex-end">
+          <button class="btn-edit" onclick="openEventModal(${ev.id})">Edit</button>
+          <button class="btn-delete" onclick="deleteEvent(${ev.id})">Delete</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Modal open/close ──────────────────────────────────────────────────────
+function openEventModal(id) {
+  const ev = id != null ? _allEvents.find(e => e.id === id) : null;
+  document.getElementById('evModalTitle').textContent = ev ? 'Edit Event' : 'Add Event';
+  document.getElementById('evId').value        = ev ? ev.id : '';
+  document.getElementById('evTitle').value     = ev ? ev.title       : '';
+  document.getElementById('evDate').value      = ev ? ev.date        : '';
+  document.getElementById('evStartTime').value = ev ? _timeToInput(ev.startTime) : '';
+  document.getElementById('evEndTime').value   = ev ? _timeToInput(ev.endTime)   : '';
+  document.getElementById('evDesc').value      = ev ? ev.description : '';
+  document.getElementById('evFeatured').checked   = !!(ev && ev.featured);
+  document.getElementById('evCancelled').checked  = !!(ev && ev.cancelled);
+  document.getElementById('evSaveMsg').textContent = '';
+
+  // Image preview
+  _evImgUrl = ev ? ev.image : '';
+  _refreshImgPreview();
+
+  document.getElementById('evModalBackdrop').classList.remove('hidden');
+  document.getElementById('evTitle').focus();
+}
+
+function closeEventModal() {
+  document.getElementById('evModalBackdrop').classList.add('hidden');
+  _evImgUrl = '';
+}
+
+// ── Image handling ────────────────────────────────────────────────────────
+let _evImgUrl = ''; // URL path to uploaded file on server
+
+function _refreshImgPreview() {
+  const preview = document.getElementById('evImgPreview');
+  const label   = document.getElementById('evImgLabel');
+  const img     = document.getElementById('evImgPreviewImg');
+  if (_evImgUrl) {
+    img.src = _evImgUrl;
+    preview.style.display = 'block';
+    label.style.display   = 'none';
+  } else {
+    preview.style.display = 'none';
+    label.style.display   = '';
+  }
+}
+
+document.getElementById('evImage').addEventListener('change', async function () {
+  const file = this.files[0];
+  if (!file) return;
+  const label = document.getElementById('evImgLabel');
+  label.style.opacity = '0.5';
+  const form = new FormData();
+  form.append('image', file);
+  const res = await fetch('/api/admin/upload/event-image', { method: 'POST', body: form });
+  label.style.opacity = '';
+  if (res.ok) {
+    const data = await res.json();
+    _evImgUrl = data.url;
+    _refreshImgPreview();
+  }
+  this.value = '';
+});
+
+document.getElementById('evImgRemove').addEventListener('click', () => {
+  _evImgUrl = '';
+  _refreshImgPreview();
+});
+
+// ── Save ──────────────────────────────────────────────────────────────────
+document.getElementById('evModalSave').addEventListener('click', async () => {
+  const id    = document.getElementById('evId').value;
+  const title = document.getElementById('evTitle').value.trim();
+  const date  = document.getElementById('evDate').value;
+  const msg   = document.getElementById('evSaveMsg');
+
+  if (!title || !date) {
+    msg.textContent = 'Title and date are required.';
+    msg.style.color = '#e87060';
+    return;
+  }
+
+  const payload = {
+    title,
+    date,
+    startTime:   _inputToTime(document.getElementById('evStartTime').value),
+    endTime:     _inputToTime(document.getElementById('evEndTime').value),
+    description: document.getElementById('evDesc').value.trim(),
+    image:       _evImgUrl,
+    featured:    document.getElementById('evFeatured').checked,
+    cancelled:   document.getElementById('evCancelled').checked
+  };
+
+  const url    = id ? '/api/admin/events/' + id : '/api/admin/events';
+  const method = id ? 'PUT' : 'POST';
+  const res    = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (res.ok) {
+    closeEventModal();
+    loadEvents();
+  } else {
+    msg.textContent = 'Failed to save.';
+    msg.style.color = '#e87060';
+  }
+});
+
+async function deleteEvent(id) {
+  if (!confirm('Delete this event?')) return;
+  const res = await fetch('/api/admin/events/' + id, { method: 'DELETE' });
+  if (res.ok) loadEvents();
+}
+
+// ── Time helpers: HH:MM ↔ "7:00 PM" ─────────────────────────────────────
+function _timeToInput(str) {
+  if (!str) return '';
+  const m = str.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return '';
+  let h = parseInt(m[1], 10);
+  const min = m[2];
+  const ampm = m[3].toUpperCase();
+  if (ampm === 'PM' && h < 12) h += 12;
+  if (ampm === 'AM' && h === 12) h = 0;
+  return String(h).padStart(2,'0') + ':' + min;
+}
+
+function _inputToTime(val) {
+  if (!val) return '';
+  const [h, m] = val.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12  = h % 12 || 12;
+  return h12 + ':' + String(m).padStart(2,'0') + ' ' + ampm;
+}
+
+// ── Wire up modal buttons + Add button ───────────────────────────────────
+document.getElementById('addEventBtn').addEventListener('click', () => openEventModal(null));
+document.getElementById('evModalClose').addEventListener('click', closeEventModal);
+document.getElementById('evModalCancel').addEventListener('click', closeEventModal);
+document.getElementById('evModalBackdrop').addEventListener('click', function (e) {
+  if (e.target === this) closeEventModal();
 });

@@ -150,6 +150,7 @@ async function loadSiteData() {
     renderMenu(menuData);
     renderHours(hoursData);
     renderSettings(settings);
+    renderOpenStatus(hoursData, settings.closure);
   } catch {
     // Server unavailable — page stays with whatever is in the HTML
   }
@@ -223,15 +224,200 @@ function renderMenu(data) {
   });
 }
 
+const _DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function _parseTimeToMin(str) {
+  const m = str.trim().match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+  if (!m) return null;
+  let h = parseInt(m[1]);
+  const min = parseInt(m[2]);
+  const ap  = m[3].toUpperCase();
+  if (ap === 'AM' && h === 12) h = 0;
+  if (ap === 'PM' && h !== 12) h += 12;
+  return h * 60 + min;
+}
+
+function _getOpenStatus(hoursData) {
+  const todayRow = hoursData.find(r => _rowMatchesToday(r.days));
+  if (!todayRow) return { isOpen: false, todayRow: null };
+
+  const parts = (todayRow.time_range || '').split(/\s*[-–—]\s*/);
+  if (parts.length < 2) return { isOpen: false, todayRow };
+
+  const openMin  = _parseTimeToMin(parts[0]);
+  const closeMin = _parseTimeToMin(parts[1]);
+  if (openMin === null || closeMin === null) return { isOpen: false, todayRow };
+
+  // Current time in CST minutes since midnight
+  const cstStr = new Date().toLocaleString('en-US', {
+    timeZone: 'America/Chicago', hour: '2-digit', minute: '2-digit', hour12: false
+  });
+  const [ch, cm] = cstStr.split(':').map(Number);
+  const nowMin = ch * 60 + cm;
+
+  // Normalise close for cross-midnight ranges (e.g. 10 PM – 2 AM)
+  const effectiveClose = closeMin <= openMin ? closeMin + 24 * 60 : closeMin;
+  const effectiveNow   = nowMin < openMin && closeMin <= openMin ? nowMin + 24 * 60 : nowMin;
+
+  const isOpen      = effectiveNow >= openMin && effectiveNow < effectiveClose;
+  const closingSoon = isOpen  && (effectiveClose - effectiveNow) <= 30;
+  const openingSoon = !isOpen && (openMin - effectiveNow) >= 0 && (openMin - effectiveNow) <= 30;
+
+  return { isOpen, closingSoon, openingSoon, openMin, closeMin: effectiveClose, todayRow };
+}
+
+function _fmtMin(min) {
+  const h  = Math.floor(min % (24 * 60) / 60);
+  const m  = min % 60;
+  const ap = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return m === 0 ? `${h12} ${ap}` : `${h12}:${String(m).padStart(2,'0')} ${ap}`;
+}
+
+const _CLOSURE_LABELS = {
+  power_outage:     'Power Outage',
+  weather:          'Severe Weather',
+  family_emergency: 'Family Emergency',
+  staff_emergency:  'Emergency',
+  private_event:    'Private Event',
+  maintenance:      'Maintenance',
+  holiday:          'Holiday',
+  other:            'Temporarily Closed'
+};
+
+function renderOpenStatus(hoursData, closure) {
+  // Temporary closure overrides everything
+  if (closure && closure.active) {
+    const heroStatus = document.getElementById('heroStatus');
+    const heroBadge  = document.getElementById('heroStatusBadge');
+    const heroHours  = document.getElementById('heroStatusHours');
+    const hoursBar   = document.getElementById('hoursStatusBar');
+    const hoursBadge = document.getElementById('hoursStatusBadge');
+    const hoursText  = document.getElementById('hoursStatusText');
+    const label      = _CLOSURE_LABELS[closure.reason] || 'Temporarily Closed';
+
+    if (heroStatus) {
+      heroBadge.textContent    = 'Temporarily Closed';
+      heroBadge.className      = 'hero__status-badge hero__status-badge--closed';
+      heroHours.textContent    = closure.message || label;
+      heroStatus.style.display = '';
+    }
+    if (hoursBar) {
+      hoursBadge.textContent = 'Temporarily Closed';
+      hoursBadge.className   = 'hours__status-pill hours__status-pill--closed';
+      hoursText.textContent  = closure.message || label;
+      hoursBar.style.display = '';
+    }
+    return;
+  }
+
+  const { isOpen, closingSoon, openingSoon, openMin, closeMin, todayRow } = _getOpenStatus(hoursData);
+
+  // Hero badge
+  const heroStatus = document.getElementById('heroStatus');
+  const heroBadge  = document.getElementById('heroStatusBadge');
+  const heroHours  = document.getElementById('heroStatusHours');
+
+  // Hours section bar
+  const hoursBar    = document.getElementById('hoursStatusBar');
+  const hoursBadge  = document.getElementById('hoursStatusBadge');
+  const hoursText   = document.getElementById('hoursStatusText');
+
+  if (!heroStatus) return;
+
+  if (!todayRow) {
+    // No entry for today — closed
+    heroBadge.textContent    = 'Closed Today';
+    heroBadge.className      = 'hero__status-badge hero__status-badge--closed';
+    heroHours.textContent    = '';
+    heroStatus.style.display = '';
+    if (hoursBar) {
+      hoursBadge.textContent    = 'Closed Today';
+      hoursBadge.className      = 'hours__status-pill hours__status-pill--closed';
+      hoursText.textContent     = '';
+      hoursBar.style.display    = '';
+    }
+    return;
+  }
+
+  const timeLabel = todayRow.time_range;
+
+  if (isOpen && closingSoon) {
+    heroBadge.textContent = 'Closing Soon';
+    heroBadge.className   = 'hero__status-badge hero__status-badge--soon';
+    heroHours.textContent = closeMin !== null ? `Closes at ${_fmtMin(closeMin)}` : timeLabel;
+    if (hoursBar) {
+      hoursBadge.textContent = 'Closing Soon';
+      hoursBadge.className   = 'hours__status-pill hours__status-pill--soon';
+      hoursText.textContent  = `Today: ${timeLabel}`;
+    }
+  } else if (isOpen) {
+    heroBadge.textContent = 'Open Now';
+    heroBadge.className   = 'hero__status-badge hero__status-badge--open';
+    heroHours.textContent = closeMin !== null ? `Closes at ${_fmtMin(closeMin)}` : timeLabel;
+    if (hoursBar) {
+      hoursBadge.textContent = 'Open Now';
+      hoursBadge.className   = 'hours__status-pill hours__status-pill--open';
+      hoursText.textContent  = `Today: ${timeLabel}`;
+    }
+  } else if (openingSoon) {
+    heroBadge.textContent = 'Opening Soon';
+    heroBadge.className   = 'hero__status-badge hero__status-badge--opening';
+    heroHours.textContent = openMin !== null ? `Opens at ${_fmtMin(openMin)}` : timeLabel;
+    if (hoursBar) {
+      hoursBadge.textContent = 'Opening Soon';
+      hoursBadge.className   = 'hours__status-pill hours__status-pill--opening';
+      hoursText.textContent  = `Today: ${timeLabel}`;
+    }
+  } else {
+    heroBadge.textContent = 'Closed Now';
+    heroBadge.className   = 'hero__status-badge hero__status-badge--closed';
+    heroHours.textContent = openMin !== null ? `Opens at ${_fmtMin(openMin)}` : timeLabel;
+    if (hoursBar) {
+      hoursBadge.textContent = 'Closed Now';
+      hoursBadge.className   = 'hours__status-pill hours__status-pill--closed';
+      hoursText.textContent  = `Today: ${timeLabel}`;
+    }
+  }
+
+  heroStatus.style.display = '';
+  if (hoursBar) hoursBar.style.display = '';
+}
+
+function _rowMatchesToday(daysStr) {
+  const today    = _DAY_NAMES[new Date().getDay()];
+  const s        = daysStr.trim();
+  const todayIdx = _DAY_NAMES.indexOf(today);
+
+  // Direct / comma-separated match
+  const parts = s.split(/,\s*/);
+  if (parts.some(p => _DAY_NAMES.findIndex(d => d.toLowerCase().startsWith(p.trim().toLowerCase())) === todayIdx)) return true;
+
+  // Range: "Monday - Friday" or "Monday – Friday"
+  const rangeMatch = s.match(/^(.+?)\s*[-–—]\s*(.+)$/);
+  if (rangeMatch) {
+    const startIdx = _DAY_NAMES.findIndex(d => d.toLowerCase().startsWith(rangeMatch[1].trim().toLowerCase()));
+    const endIdx   = _DAY_NAMES.findIndex(d => d.toLowerCase().startsWith(rangeMatch[2].trim().toLowerCase()));
+    if (startIdx >= 0 && endIdx >= 0) {
+      return startIdx <= endIdx
+        ? todayIdx >= startIdx && todayIdx <= endIdx
+        : todayIdx >= startIdx || todayIdx <= endIdx; // wraps week (e.g. Fri–Mon)
+    }
+  }
+  return false;
+}
+
 function renderHours(rows) {
   const table = document.getElementById('hours-table');
   if (!table) return;
-  table.innerHTML = rows.map(row => `
-    <div class="hours__row reveal">
+  table.innerHTML = rows.map(row => {
+    const todayClass = _rowMatchesToday(row.days) ? ' hours__row--today' : '';
+    return `
+    <div class="hours__row${todayClass} reveal">
       <span>${escHtml(row.days)}</span>
       <span>${escHtml(row.time_range)}</span>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
   table.querySelectorAll('.hours__row').forEach((el, i) => {
     const d = staggerDelays[Math.min(i, staggerDelays.length - 1)];
     if (d) el.classList.add(d);

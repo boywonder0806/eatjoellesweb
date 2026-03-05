@@ -332,6 +332,20 @@ router.post('/hours', requirePermission('hours', 'full'), (req, res) => {
   res.json(newRow);
 });
 
+// PUT /api/admin/hours/reorder — body: [{ id, sort_order }, ...] — must be before /:id
+router.put('/hours/reorder', requirePermission('hours', 'full'), (req, res) => {
+  const order = req.body;
+  if (!Array.isArray(order)) return res.status(400).json({ error: 'Expected an array' });
+  const data = readData();
+  order.forEach(({ id, sort_order }) => {
+    const row = data.hours.find(h => h.id === id);
+    if (row) row.sort_order = sort_order;
+  });
+  writeData(data);
+  addLog(req, 'hours.reorder', 'Reordered hours rows');
+  res.json({ success: true });
+});
+
 // PUT /api/admin/hours/:id
 router.put('/hours/:id', requirePermission('hours', 'full'), (req, res) => {
   const id   = parseInt(req.params.id, 10);
@@ -355,18 +369,83 @@ router.delete('/hours/:id', requirePermission('hours', 'full'), (req, res) => {
   res.json({ success: true });
 });
 
+// ── EVENTS ───────────────────────────────────────────────────────────────────
+
+// GET /api/admin/events
+router.get('/events', requirePermission('events', 'view'), (_req, res) => {
+  const data = readData();
+  res.json((data.events || []).sort((a, b) => a.date.localeCompare(b.date)));
+});
+
+// POST /api/admin/events
+router.post('/events', requirePermission('events', 'full'), (req, res) => {
+  const { title, date, startTime, endTime, description, image, featured, cancelled } = req.body;
+  if (!title || !date) return res.status(400).json({ error: 'title and date are required' });
+  const data  = readData();
+  data.events = data.events || [];
+  const ev = {
+    id:          getNextId(data.events),
+    title:       title.trim(),
+    date,
+    startTime:   startTime || '',
+    endTime:     endTime   || '',
+    description: (description || '').trim(),
+    image:       image || '',
+    featured:    !!featured,
+    cancelled:   !!cancelled,
+    createdAt:   new Date().toISOString()
+  };
+  data.events.push(ev);
+  writeData(data);
+  addLog(req, 'events.create', 'Created event: ' + ev.title + ' on ' + ev.date);
+  res.json(ev);
+});
+
+// PUT /api/admin/events/:id
+router.put('/events/:id', requirePermission('events', 'full'), (req, res) => {
+  const id   = parseInt(req.params.id, 10);
+  const data = readData();
+  const idx  = (data.events || []).findIndex(e => e.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Event not found' });
+  data.events[idx] = { ...data.events[idx], ...req.body, id };
+  writeData(data);
+  addLog(req, 'events.update', 'Updated event: ' + data.events[idx].title);
+  res.json(data.events[idx]);
+});
+
+// DELETE /api/admin/events/:id
+router.delete('/events/:id', requirePermission('events', 'full'), (req, res) => {
+  const id   = parseInt(req.params.id, 10);
+  const data = readData();
+  const ev   = (data.events || []).find(e => e.id === id);
+  data.events = (data.events || []).filter(e => e.id !== id);
+  writeData(data);
+  addLog(req, 'events.delete', 'Deleted event: ' + (ev ? ev.title : id));
+  res.json({ success: true });
+});
+
 // ── SETTINGS (requireAdmin — admin only) ─────────────────────────────────────
 
 // GET /api/admin/settings
-router.get('/settings', requirePermission('settings', 'view'), (req, res) => {
-  const { settings } = readData();
-  res.json(settings);
+router.get('/settings', requirePermission('settings', 'view'), (_req, res) => {
+  const data = readData();
+  const s    = data.settings;
+  // Auto-clear an expired banner
+  if (s.banner_enabled && s.banner_expiry && new Date(s.banner_expiry) <= new Date()) {
+    s.banner_enabled     = false;
+    s.banner_expiry      = '';
+    s.banner_text        = '';
+    s.banner_type        = 'info';
+    s.banner_dismissable = true;
+    writeData(data);
+  }
+  res.json(s);
 });
 
 // PUT /api/admin/settings
 router.put('/settings', requirePermission('settings', 'full'), (req, res) => {
   const data    = readData();
-  const allowed = ['address', 'phone', 'email', 'banner_enabled', 'banner_dismissable', 'banner_text', 'banner_type'];
+  const allowed = ['address', 'phone', 'email', 'banner_enabled', 'banner_dismissable', 'banner_text', 'banner_type', 'banner_expiry'];
   allowed.forEach(key => {
     if (req.body[key] !== undefined) data.settings[key] = req.body[key];
   });
@@ -679,6 +758,34 @@ router.delete('/logs', requireAdmin, (req, res) => {
   writeData(data);
   addLog(req, 'security.clear_logs', `Audit log cleared by '${req.session.username}'`);
   res.json({ success: true });
+});
+
+// ── TEMPORARY CLOSURE ─────────────────────────────────────────────────────────
+
+// GET /api/admin/closure
+router.get('/closure', requirePermission('hours', 'view'), (_req, res) => {
+  const data = readData();
+  res.json(data.closure || { active: false, reason: '', message: '', until: '' });
+});
+
+// PUT /api/admin/closure
+router.put('/closure', requirePermission('hours', 'full'), (req, res) => {
+  const data    = readData();
+  const allowed = ['active', 'reason', 'message', 'until'];
+  data.closure  = data.closure || {};
+  allowed.forEach(key => {
+    if (req.body[key] !== undefined) data.closure[key] = req.body[key];
+  });
+  // Auto-lift if "until" has already passed
+  if (data.closure.active && data.closure.until && new Date(data.closure.until) <= new Date()) {
+    data.closure.active = false;
+    data.closure.until  = '';
+  }
+  writeData(data);
+  addLog(req, 'closure.update', data.closure.active
+    ? `Temporary closure activated: ${data.closure.reason || 'unspecified'}`
+    : 'Temporary closure lifted');
+  res.json(data.closure);
 });
 
 // ── TOAST INTEGRATION ─────────────────────────────────────────────────────────
