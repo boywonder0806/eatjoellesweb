@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const bcrypt  = require('bcryptjs');
@@ -149,7 +150,7 @@ const DEFAULT_ROLE_PERMISSIONS = Object.fromEntries(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-  secret:            'joells-lounge-change-me-in-production',
+  secret:            process.env.SESSION_SECRET || 'joelles-lounge-fallback-secret',
   resave:            false,
   saveUninitialized: false,
   cookie:            { maxAge: 8 * 60 * 60 * 1000 } // 8 hours
@@ -227,7 +228,11 @@ app.use('/admin', express.static(path.join(__dirname, 'admin'), { index: false }
 // ── Public static files ─────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(path.join(__dirname), { index: false }));
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/', (req, res) => {
+  const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8')
+    .replace('%%GOOGLE_MAPS_KEY%%', process.env.GOOGLE_MAPS_KEY || '');
+  res.type('html').send(html);
+});
 app.get('/about',  (req, res) => res.sendFile(path.join(__dirname, 'about.html')));
 app.get('/events', (req, res) => res.sendFile(path.join(__dirname, 'events.html')));
 
