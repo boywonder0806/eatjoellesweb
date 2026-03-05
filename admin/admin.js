@@ -38,6 +38,8 @@ fetch('/api/admin/check')
     const perms = data.permissions; // null = admin
     const canView = (panel) => data.role === 'admin' || (perms?.[panel] === 'view' || perms?.[panel] === 'full');
 
+    loadDashboard();
+
     if (canView('menu'))     loadMenus();
     if (canView('hours'))    loadHours();
     if (canView('settings')) loadSettings();
@@ -48,6 +50,185 @@ fetch('/api/admin/check')
     loadRoles(); // always load for badge colors; management UI only visible to admin
   })
   .catch(() => window.location.href = '/admin/login');
+
+// ── Dashboard ────────────────────────────────
+let _dashClockInterval = null;
+let _dashHours = [];
+
+async function loadDashboard() {
+  const user = currentUser;
+  updateDashboardAvatar(user);
+  document.getElementById('dashName').textContent = user.firstName || user.username;
+
+  try {
+    const res = await fetch('/api/hours');
+    if (res.ok) _dashHours = await res.json();
+  } catch (_) { /* hours unavailable */ }
+
+  tickDashboardClock();
+  clearInterval(_dashClockInterval);
+  _dashClockInterval = setInterval(tickDashboardClock, 1000);
+
+  loadDashboardMetrics();
+  loadDashboardWeather();
+}
+
+// ── Dashboard weather (Open-Meteo, Baton Rouge LA) ────────────────────────────
+
+async function loadDashboardWeather() {
+  try {
+    const url = 'https://api.open-meteo.com/v1/forecast' +
+      '?latitude=30.4515&longitude=-91.1871' +
+      '&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m' +
+      '&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FChicago';
+    const res  = await fetch(url);
+    if (!res.ok) return;
+    const data = await res.json();
+    const c    = data.current;
+    const { icon, label } = _weatherInfo(c.weather_code);
+    document.getElementById('dashWeatherIcon').textContent      = icon;
+    document.getElementById('dashWeatherTemp').textContent      = `${Math.round(c.temperature_2m)}°F`;
+    document.getElementById('dashWeatherCondition').textContent = label;
+    document.getElementById('dashWeatherDetails').textContent   =
+      `Feels like ${Math.round(c.apparent_temperature)}°  ·  ${c.relative_humidity_2m}% humidity  ·  ${Math.round(c.wind_speed_10m)} mph`;
+  } catch (_) { /* weather unavailable — leave placeholder */ }
+}
+
+function _weatherInfo(code) {
+  if (code === 0)  return { icon: '☀️',  label: 'Clear Sky' };
+  if (code === 1)  return { icon: '🌤️',  label: 'Mainly Clear' };
+  if (code === 2)  return { icon: '⛅',  label: 'Partly Cloudy' };
+  if (code === 3)  return { icon: '☁️',  label: 'Overcast' };
+  if (code <= 48)  return { icon: '🌫️',  label: 'Foggy' };
+  if (code <= 55)  return { icon: '🌦️',  label: 'Drizzle' };
+  if (code <= 65)  return { icon: '🌧️',  label: 'Rain' };
+  if (code <= 75)  return { icon: '❄️',  label: 'Snow' };
+  if (code <= 82)  return { icon: '🌧️',  label: 'Rain Showers' };
+  if (code <= 99)  return { icon: '⛈️',  label: 'Thunderstorm' };
+  return           { icon: '🌡️',  label: 'Unknown' };
+}
+
+// ── Dashboard metrics (Toast POS) ────────────────────────────────────────────
+
+async function loadDashboardMetrics() {
+  const grid   = document.getElementById('dashMetricsGrid');
+  const notice = document.getElementById('dashMetricsNotice');
+  if (!grid) return;
+
+  // Show loading state
+  grid.querySelectorAll('.dash-metric-value').forEach(el => { el.textContent = '…'; });
+
+  try {
+    const res  = await fetch('/api/admin/toast/metrics');
+    if (!res.ok) throw new Error('fetch failed');
+    const data = await res.json();
+
+    if (!data.configured) {
+      grid.classList.add('hidden');
+      notice.classList.remove('hidden');
+      return;
+    }
+
+    grid.classList.remove('hidden');
+    notice.classList.add('hidden');
+
+    if (data.error) {
+      grid.querySelectorAll('.dash-metric-value').forEach(el => { el.textContent = '—'; });
+      return;
+    }
+
+    const fmt$ = v => v != null ? '$' + Number(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '—';
+    const fmtN = v => v != null ? Number(v).toLocaleString() : '—';
+    const fmtH = v => v != null ? Number(v).toFixed(1) + 'h' : '—';
+
+    const ms = Array.isArray(data.metrics) ? data.metrics : (data.metrics ? [data.metrics] : []);
+    const ls = Array.isArray(data.labor)   ? data.labor   : (data.labor   ? [data.labor]   : []);
+    const sum = (arr, key) => arr.reduce((acc, r) => acc + (r[key] || 0), 0);
+
+    const totalNet    = sum(ms, 'netSalesAmount');
+    const totalOrders = sum(ms, 'ordersCount');
+
+    document.getElementById('dm-netSales').textContent   = fmt$(totalNet);
+    document.getElementById('dm-grossSales').textContent = fmt$(sum(ms, 'grossSalesAmount'));
+    document.getElementById('dm-avgOrder').textContent   = totalOrders ? fmt$(totalNet / totalOrders) : '—';
+    document.getElementById('dm-guests').textContent     = fmtN(sum(ms, 'guestCount'));
+    document.getElementById('dm-orders').textContent     = fmtN(totalOrders);
+    document.getElementById('dm-laborHours').textContent = fmtH(sum(ls, 'totalHours'));
+    document.getElementById('dm-laborCost').textContent  = fmt$(sum(ls, 'totalCost'));
+    document.getElementById('dm-discounts').textContent  = fmt$(sum(ms, 'discountAmount'));
+    document.getElementById('dm-voids').textContent      = fmt$(sum(ms, 'voidOrdersAmount'));
+
+  } catch (_) {
+    if (grid) grid.querySelectorAll('.dash-metric-value').forEach(el => { el.textContent = '—'; });
+  }
+}
+
+document.getElementById('dashMetricsRefresh')?.addEventListener('click', loadDashboardMetrics);
+
+function updateDashboardAvatar(user) {
+  const el = document.getElementById('dashAvatar');
+  if (!el) return;
+  if (user.profilePicture) {
+    el.style.backgroundImage    = `url(${user.profilePicture})`;
+    el.style.backgroundSize     = 'cover';
+    el.style.backgroundPosition = 'center';
+    el.textContent = '';
+  } else {
+    el.style.backgroundImage = '';
+    el.textContent = (user.firstName && user.lastName)
+      ? (user.firstName[0] + user.lastName[0]).toUpperCase()
+      : user.username.charAt(0).toUpperCase();
+  }
+}
+
+function tickDashboardClock() {
+  const now     = new Date();
+  const timeEl  = document.getElementById('dashTime');
+  const dateEl  = document.getElementById('dashDate');
+  if (timeEl) timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  if (dateEl) dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  updateDashboardStatus(now);
+}
+
+// ── Open/closed helpers ───────────────────────
+const _DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+
+function _parseTime12(str) {
+  const m = str.trim().match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return null;
+  let h = parseInt(m[1]);
+  const min = parseInt(m[2]);
+  const ampm = m[3].toUpperCase();
+  if (ampm === 'PM' && h !== 12) h += 12;
+  if (ampm === 'AM' && h === 12) h = 0;
+  return h * 60 + min;
+}
+
+function _dayInRange(daysStr, dow) {
+  // Split on en/em dash or spaced hyphen
+  const parts = daysStr.split(/\s*[–—]\s*|\s+-\s+/).map(s => s.trim().toLowerCase());
+  if (parts.length === 1) return parts[0] === _DAYS[dow];
+  const s = _DAYS.indexOf(parts[0]), e = _DAYS.indexOf(parts[1]);
+  if (s === -1 || e === -1) return false;
+  return s <= e ? (dow >= s && dow <= e) : (dow >= s || dow <= e);
+}
+
+function updateDashboardStatus(now) {
+  const badge = document.getElementById('dashStatus');
+  if (!badge || !_dashHours.length) return;
+  const dow = now.getDay();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  let open = false;
+  for (const row of _dashHours) {
+    if (!_dayInRange(row.days, dow)) continue;
+    const parts = row.time_range.split(/\s*[–—]\s*|\s+-\s+/);
+    if (parts.length < 2) continue;
+    const o = _parseTime12(parts[0]), c = _parseTime12(parts[1]);
+    if (o !== null && c !== null && mins >= o && mins < c) { open = true; break; }
+  }
+  badge.textContent = open ? 'RESTAURANT OPEN' : 'RESTAURANT CLOSED';
+  badge.className = `dashboard-status dashboard-status--${open ? 'open' : 'closed'}`;
+}
 
 // ── Role gating ──────────────────────────────
 function applyRoleGating(data) {
@@ -182,6 +363,9 @@ document.getElementById('profileSaveBtn')?.addEventListener('click', async () =>
   document.getElementById('adminUsername').textContent =
     (saved.firstName && saved.lastName) ? `${saved.firstName} ${saved.lastName}` : saved.username;
   updateSidebarAvatar(saved);
+  updateDashboardAvatar(saved);
+  const dashName = document.getElementById('dashName');
+  if (dashName) dashName.textContent = saved.firstName || saved.username;
 });
 
 document.getElementById('profileCancelBtn')?.addEventListener('click', () => {
@@ -1005,6 +1189,7 @@ document.getElementById('editMenuNewCatInput').addEventListener('keydown', (e) =
 async function loadHours() {
   const res   = await fetch('/api/admin/hours');
   const hours = await res.json();
+  _dashHours  = hours; // keep dashboard status in sync
   renderHoursTable(hours);
 }
 
@@ -1112,27 +1297,66 @@ async function loadSettings() {
   document.getElementById('b-dismissable').checked = data.banner_dismissable !== false; // default true
   document.getElementById('b-text').value          = data.banner_text || '';
   document.getElementById('b-type').value          = data.banner_type || 'info';
+
+  // Load Toast config (admin only)
+  try {
+    const tcRes = await fetch('/api/admin/toast/config');
+    if (tcRes.ok) {
+      const cfg = await tcRes.json();
+      document.getElementById('t-apiBaseUrl').value     = cfg.apiBaseUrl     || 'https://ws-api.toasttab.com';
+      document.getElementById('t-clientId').value       = cfg.clientId       || '';
+      document.getElementById('t-clientSecret').value   = cfg.clientSecret   || '';
+      document.getElementById('t-restaurantGuid').value = cfg.restaurantGuid || '';
+    }
+  } catch (_) { /* non-admin users won't have access */ }
 }
 
-document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+document.getElementById('contactForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const payload = {
-    address:            document.getElementById('s-address').value.trim(),
-    phone:              document.getElementById('s-phone').value.trim(),
-    email:              document.getElementById('s-email').value.trim(),
+    address: document.getElementById('s-address').value.trim(),
+    phone:   document.getElementById('s-phone').value.trim(),
+    email:   document.getElementById('s-email').value.trim()
+  };
+  const res = await fetch('/api/admin/settings', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  });
+  const msg = document.getElementById('contactMsg');
+  if (res.ok) { showMsg(msg, '✓ Saved'); } else { showMsg(msg, '✗ Save failed', true); }
+});
+
+document.getElementById('bannerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
     banner_enabled:     document.getElementById('b-enabled').checked,
     banner_dismissable: document.getElementById('b-dismissable').checked,
     banner_text:        document.getElementById('b-text').value.trim(),
     banner_type:        document.getElementById('b-type').value
   };
   const res = await fetch('/api/admin/settings', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  });
+  const msg = document.getElementById('bannerMsg');
+  if (res.ok) { showMsg(msg, '✓ Saved'); } else { showMsg(msg, '✗ Save failed', true); }
+});
+
+document.getElementById('toastConfigForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
+    apiBaseUrl:     document.getElementById('t-apiBaseUrl').value.trim(),
+    clientId:       document.getElementById('t-clientId').value.trim(),
+    clientSecret:   document.getElementById('t-clientSecret').value.trim(),
+    restaurantGuid: document.getElementById('t-restaurantGuid').value.trim()
+  };
+  const res = await fetch('/api/admin/toast/config', {
     method:  'PUT',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(payload)
   });
-  const msg = document.getElementById('settingsMsg');
+  const msg = document.getElementById('toastConfigMsg');
   if (res.ok) {
-    showMsg(msg, '✓ Saved successfully');
+    showMsg(msg, '✓ Saved — dashboard will use new credentials');
+    document.getElementById('t-clientSecret').value = ''; // clear after save
   } else {
     showMsg(msg, '✗ Save failed', true);
   }
@@ -1483,7 +1707,10 @@ function renderRolesTable() {
     const color = role.color || '#9a9088';
     return `
     <tr data-role-id="${role.id}">
-      <td><span class="role-badge" ${roleBadgeStyle(role.name)}>${esc(role.name)}</span></td>
+      <td>
+        <span class="role-badge" ${roleBadgeStyle(role.name)}>${esc(role.name)}</span>
+        ${role.isSystemAdmin ? '<span class="badge-sysadmin">SYS ADMIN</span>' : ''}
+      </td>
       <td class="role-desc-cell">${esc(role.description)}</td>
       <td>
         <div class="color-swatch-wrap">
@@ -1532,6 +1759,9 @@ function openRoleEditModal(roleId) {
   document.getElementById('editRoleModalSub').textContent   = role.description || '';
   document.getElementById('editRoleError').textContent      = '';
 
+  const sysAdminChk = document.getElementById('roleIsSystemAdmin');
+  sysAdminChk.checked = !!role.isSystemAdmin;
+
   const LABELS = { hidden: 'None', view: 'View', full: 'Edit' };
 
   document.getElementById('editRolePermsGrid').innerHTML = ROLE_PERMISSION_PANELS.map(p => `
@@ -1548,11 +1778,30 @@ function openRoleEditModal(roleId) {
     </div>
   `).join('');
 
+  _applySystemAdminLock(sysAdminChk.checked);
   document.getElementById('editRoleModal').classList.remove('hidden');
 }
 
+function _applySystemAdminLock(isLocked) {
+  document.querySelectorAll('#editRolePermsGrid input[type="radio"]').forEach(r => {
+    if (isLocked) {
+      // Force all to 'full' and disable
+      if (r.value === 'full') r.checked = true;
+      r.disabled = true;
+    } else {
+      r.disabled = false;
+    }
+  });
+  document.getElementById('editRolePermsGrid').classList.toggle('role-perms-grid--locked', isLocked);
+}
+
+document.getElementById('roleIsSystemAdmin')?.addEventListener('change', function () {
+  _applySystemAdminLock(this.checked);
+});
+
 async function saveRolePermissions() {
-  const permissions = {};
+  const isSystemAdmin = document.getElementById('roleIsSystemAdmin').checked;
+  const permissions   = {};
   ROLE_PERMISSION_PANELS.forEach(p => {
     const checked = document.querySelector(`input[name="perm-${p}"]:checked`);
     permissions[p] = checked ? checked.value : 'hidden';
@@ -1561,7 +1810,7 @@ async function saveRolePermissions() {
   const res = await fetch(`/api/admin/roles/${editingRoleId}`, {
     method:  'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ permissions })
+    body:    JSON.stringify({ isSystemAdmin, permissions })
   });
   const msg = document.getElementById('rolesMsg');
   if (res.ok) {

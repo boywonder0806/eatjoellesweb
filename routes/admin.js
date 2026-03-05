@@ -8,10 +8,17 @@ function requireAuth(req, res, next) {
   next();
 }
 
+function isSystemAdminRole(roleName) {
+  if (roleName === 'admin') return true;
+  const data    = readData();
+  const roleObj = (data.roles || []).find(r => r.name === roleName);
+  return !!roleObj?.isSystemAdmin;
+}
+
 function requireAdmin(req, res, next) {
   if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-  if (req.session.role !== 'admin') return res.status(403).json({ error: 'Forbidden — Admin only' });
-  next();
+  if (isSystemAdminRole(req.session.role)) return next();
+  return res.status(403).json({ error: 'Forbidden — Admin only' });
 }
 
 const PERM_LEVELS = { hidden: 0, view: 1, full: 2 };
@@ -35,6 +42,7 @@ function requirePermission(panel, level) {
     if (req.session.role === 'admin') return next();
     const data    = readData();
     const roleObj = (data.roles || []).find(r => r.name === req.session.role);
+    if (roleObj?.isSystemAdmin) return next();
     const perm    = roleObj?.permissions?.[panel] ?? 'hidden';
     if (PERM_LEVELS[perm] >= PERM_LEVELS[level]) return next();
     return res.status(403).json({ error: 'Forbidden' });
@@ -583,12 +591,24 @@ router.put('/roles/:id', requireAdmin, (req, res) => {
   const data = readData();
   const idx  = (data.roles || []).findIndex(r => r.id === id);
   if (idx === -1) return res.status(404).json({ error: 'Role not found' });
-  if (req.body.name        !== undefined) data.roles[idx].name        = req.body.name;
-  if (req.body.description !== undefined) data.roles[idx].description = req.body.description;
-  if (req.body.color       !== undefined) data.roles[idx].color       = req.body.color;
-  if (req.body.permissions !== undefined) data.roles[idx].permissions = normalizeRolePermissions(req.body.permissions);
+  if (req.body.name         !== undefined) data.roles[idx].name        = req.body.name;
+  if (req.body.description  !== undefined) data.roles[idx].description = req.body.description;
+  if (req.body.color        !== undefined) data.roles[idx].color       = req.body.color;
+  if (req.body.isSystemAdmin !== undefined) {
+    data.roles[idx].isSystemAdmin = !!req.body.isSystemAdmin;
+    // System admin roles always get full access across every panel
+    if (data.roles[idx].isSystemAdmin) {
+      data.roles[idx].permissions = normalizeRolePermissions(
+        Object.fromEntries(ROLE_PERMISSION_PANELS.map(p => [p, 'full']))
+      );
+    }
+  }
+  if (req.body.permissions !== undefined && !data.roles[idx].isSystemAdmin) {
+    data.roles[idx].permissions = normalizeRolePermissions(req.body.permissions);
+  }
   writeData(data);
-  const updateType = req.body.permissions ? 'permissions' : req.body.color ? 'color' : 'details';
+  const updateType = req.body.isSystemAdmin !== undefined ? 'system-admin flag'
+    : req.body.permissions ? 'permissions' : req.body.color ? 'color' : 'details';
   addLog(req, 'role.update', `Updated ${updateType} for role '${data.roles[idx].name}'`);
   res.json(data.roles[idx]);
 });
@@ -659,6 +679,116 @@ router.delete('/logs', requireAdmin, (req, res) => {
   writeData(data);
   addLog(req, 'security.clear_logs', `Audit log cleared by '${req.session.username}'`);
   res.json({ success: true });
+});
+
+// ── TOAST INTEGRATION ─────────────────────────────────────────────────────────
+
+// GET /api/admin/toast/config  (admin only — never expose the raw secret)
+router.get('/toast/config', requireAdmin, (_req, res) => {
+  const data = readData();
+  const cfg  = data.toast || {};
+  res.json({
+    apiBaseUrl:     cfg.apiBaseUrl     || 'https://ws-api.toasttab.com',
+    clientId:       cfg.clientId       || '',
+    clientSecret:   cfg.clientSecret   ? '••••••••' : '',
+    restaurantGuid: cfg.restaurantGuid || '',
+    configured:     !!(cfg.clientId && cfg.clientSecret && cfg.restaurantGuid)
+  });
+});
+
+// PUT /api/admin/toast/config
+router.put('/toast/config', requireAdmin, (req, res) => {
+  const data = readData();
+  data.toast  = data.toast || {};
+  const { apiBaseUrl, clientId, clientSecret, restaurantGuid } = req.body;
+  if (apiBaseUrl     !== undefined) data.toast.apiBaseUrl     = apiBaseUrl;
+  if (clientId       !== undefined) data.toast.clientId       = clientId;
+  if (clientSecret   && clientSecret !== '••••••••') data.toast.clientSecret = clientSecret;
+  if (restaurantGuid !== undefined) data.toast.restaurantGuid = restaurantGuid;
+  writeData(data);
+  addLog(req, 'toast.config_update', `Updated Toast API configuration`);
+  res.json({ success: true });
+});
+
+// GET /api/admin/toast/metrics  — proxy to Toast API; returns today's sales + labor
+router.get('/toast/metrics', requireAuth, async (_req, res) => {
+  const data = readData();
+  const cfg  = data.toast || {};
+
+  if (!cfg.clientId || !cfg.clientSecret || !cfg.restaurantGuid) {
+    return res.json({ configured: false });
+  }
+
+  const baseUrl = (cfg.apiBaseUrl || 'https://ws-api.toasttab.com').replace(/\/$/, '');
+
+  try {
+    // 1. Get OAuth token
+    const tokenRes = await fetch(`${baseUrl}/authentication/v1/authentication/login`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        clientId:       cfg.clientId,
+        clientSecret:   cfg.clientSecret,
+        userAccessType: 'TOAST_MACHINE_CLIENT'
+      })
+    });
+    if (!tokenRes.ok) return res.json({ configured: true, error: 'Toast auth failed' });
+    const tokenData = await tokenRes.json();
+    const token     = tokenData.token?.accessToken;
+    if (!token) return res.json({ configured: true, error: 'No access token returned' });
+
+    // 2. Today as YYYYMMDD integer
+    const now      = new Date();
+    const dateInt  = parseInt(
+      `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+    );
+
+    const authHeaders = {
+      'Authorization':                  `Bearer ${token}`,
+      'Toast-Restaurant-External-ID':   cfg.restaurantGuid,
+      'Content-Type':                   'application/json'
+    };
+
+    const reportBody = JSON.stringify({
+      restaurantIds:         [cfg.restaurantGuid],
+      excludedRestaurantIds: [],
+      startBusinessDate:     dateInt,
+      endBusinessDate:       dateInt
+    });
+
+    // Helper: POST a report request, poll until ready (max ~12 s)
+    async function fetchReport(postPath, getBase) {
+      const postRes = await fetch(`${baseUrl}/era/v1/${postPath}`, {
+        method: 'POST', headers: authHeaders, body: reportBody
+      });
+      if (!postRes.ok) return null;
+      const guidRaw = await postRes.json();
+      const guid    = typeof guidRaw === 'string' ? guidRaw : guidRaw?.reportRequestGuid;
+      if (!guid) return null;
+
+      const getHeaders = {
+        'Authorization':                `Bearer ${token}`,
+        'Toast-Restaurant-External-ID': cfg.restaurantGuid
+      };
+      for (let i = 0; i < 8; i++) {
+        await new Promise(r => setTimeout(r, 1500));
+        const getRes = await fetch(`${baseUrl}/era/v1/${getBase}/${guid}`, { headers: getHeaders });
+        if (getRes.status === 200) return getRes.json();
+        if (getRes.status !== 202) return null;
+      }
+      return null;
+    }
+
+    // Fetch sales metrics and labor in parallel
+    const [metrics, labor] = await Promise.all([
+      fetchReport('metrics/day', 'metrics'),
+      fetchReport('labor/day',   'labor')
+    ]);
+
+    res.json({ configured: true, metrics, labor });
+  } catch (err) {
+    res.json({ configured: true, error: err.message });
+  }
 });
 
 module.exports = router;

@@ -21,14 +21,14 @@
 
       <nav class="sidebar__nav">
         <span class="sidebar__section">Content</span>
-        <button class="sidebar__link active" data-panel="menu" data-permission-panel="menu">
+        <button class="sidebar__link active" data-panel="dashboard">
+          <i class="nav-icon">&#9783;</i> Dashboard
+        </button>
+        <button class="sidebar__link" data-panel="menu" data-permission-panel="menu">
           <i class="nav-icon">&#9776;</i> Menu Items
         </button>
         <button class="sidebar__link" data-panel="hours" data-permission-panel="hours">
           <i class="nav-icon">&#9201;</i> Hours
-        </button>
-        <button class="sidebar__link" data-panel="settings" data-permission-panel="settings">
-          <i class="nav-icon">&#9881;</i> Settings
         </button>
         <button class="sidebar__link" data-panel="about" data-permission-panel="about">
           <i class="nav-icon">&#9998;</i> About Page
@@ -36,6 +36,9 @@
         <button class="sidebar__link" data-panel="messages" data-permission-panel="messages">
           <i class="nav-icon">&#9993;</i> Messages
           <span class="msg-unread-badge hidden" id="unreadBadge"></span>
+        </button>
+        <button class="sidebar__link" data-panel="settings" data-permission-panel="settings">
+          <i class="nav-icon">&#9881;</i> Settings
         </button>
 
         <span class="sidebar__section" id="sidebarAdminSection" style="margin-top:0.5rem">Admin</span>
@@ -67,8 +70,92 @@
     <!-- ── Main ─────────────────────────────── -->
     <main class="admin-main">
 
+      <!-- ── DASHBOARD PANEL ────────────────── -->
+      <section class="panel active" id="panel-dashboard">
+        <div class="dashboard-welcome-wrap">
+          <div class="dashboard-avatar-ring">
+            <div class="dashboard-avatar" id="dashAvatar"></div>
+          </div>
+          <div class="dashboard-greeting">
+            <p class="dashboard-welcome-label">Welcome back,</p>
+            <h1 class="dashboard-name" id="dashName">—</h1>
+          </div>
+
+          <!-- Clock widget -->
+          <div class="dash-clock">
+            <div class="dash-clock-main">
+              <span class="dash-clock-time" id="dashTime">—</span>
+            </div>
+            <span class="dash-clock-date" id="dashDate"></span>
+          </div>
+
+          <!-- Weather widget -->
+          <div class="dash-weather" id="dashWeather">
+            <div class="dash-weather-main">
+              <span class="dash-weather-icon" id="dashWeatherIcon"></span>
+              <span class="dash-weather-temp" id="dashWeatherTemp">—</span>
+            </div>
+            <span class="dash-weather-condition" id="dashWeatherCondition">Baton Rouge, LA</span>
+            <span class="dash-weather-details" id="dashWeatherDetails"></span>
+          </div>
+
+          <span class="dashboard-status" id="dashStatus"></span>
+        </div>
+
+        <!-- Toast POS metrics -->
+        <div class="dash-metrics-section" id="dashMetricsSection">
+          <div class="dash-metrics-header">
+            <span class="dash-metrics-title">Today's Performance</span>
+            <button class="btn-ghost btn-sm" id="dashMetricsRefresh" title="Refresh">&#8635; Refresh</button>
+          </div>
+
+          <div class="dash-metrics-grid" id="dashMetricsGrid">
+            <div class="dash-metric-card">
+              <span class="dash-metric-label">Net Sales</span>
+              <span class="dash-metric-value" id="dm-netSales">—</span>
+            </div>
+            <div class="dash-metric-card">
+              <span class="dash-metric-label">Gross Sales</span>
+              <span class="dash-metric-value" id="dm-grossSales">—</span>
+            </div>
+            <div class="dash-metric-card">
+              <span class="dash-metric-label">Avg. Order</span>
+              <span class="dash-metric-value" id="dm-avgOrder">—</span>
+            </div>
+            <div class="dash-metric-card">
+              <span class="dash-metric-label">Guests</span>
+              <span class="dash-metric-value" id="dm-guests">—</span>
+            </div>
+            <div class="dash-metric-card">
+              <span class="dash-metric-label">Orders</span>
+              <span class="dash-metric-value" id="dm-orders">—</span>
+            </div>
+            <div class="dash-metric-card">
+              <span class="dash-metric-label">Labor Hours</span>
+              <span class="dash-metric-value" id="dm-laborHours">—</span>
+            </div>
+            <div class="dash-metric-card">
+              <span class="dash-metric-label">Labor Cost</span>
+              <span class="dash-metric-value" id="dm-laborCost">—</span>
+            </div>
+            <div class="dash-metric-card">
+              <span class="dash-metric-label">Discounts</span>
+              <span class="dash-metric-value" id="dm-discounts">—</span>
+            </div>
+            <div class="dash-metric-card">
+              <span class="dash-metric-label">Voids</span>
+              <span class="dash-metric-value" id="dm-voids">—</span>
+            </div>
+          </div>
+
+          <div class="dash-metrics-notice hidden" id="dashMetricsNotice">
+            Connect your Toast POS account in <strong>Settings &rarr; Toast Integration</strong> to see live sales data.
+          </div>
+        </div>
+      </section>
+
       <!-- ── MENU PANEL ──────────────────────── -->
-      <section class="panel active" id="panel-menu">
+      <section class="panel" id="panel-menu">
         <div class="panel__header">
           <div>
             <span class="panel__eyebrow">Manage</span>
@@ -235,69 +322,114 @@
         <div class="panel__header">
           <div>
             <span class="panel__eyebrow">Manage</span>
-            <h1 class="panel__title">Contact & Info</h1>
-            <p class="panel__sub">These values appear in the Hours & Contact section of the public site.</p>
+            <h1 class="panel__title">Settings</h1>
+            <p class="panel__sub">Configure your site information, announcements, and integrations.</p>
           </div>
         </div>
 
-        <form class="settings-form" id="settingsForm">
+        <div class="settings-cards-grid">
 
-          <!-- Contact Info -->
-          <div class="settings-section-title">Contact Info</div>
-          <div class="field">
-            <label for="s-address">Address</label>
-            <input type="text" id="s-address" name="address" placeholder="123 Main Street, Your City, ST 00000" />
-          </div>
-          <div class="field">
-            <label for="s-phone">Phone</label>
-            <input type="tel" id="s-phone" name="phone" placeholder="(555) 123-4567" />
-          </div>
-          <div class="field">
-            <label for="s-email">Email</label>
-            <input type="email" id="s-email" name="email" placeholder="hello@joelleslounge.com" />
-          </div>
-
-          <!-- Announcement Banner -->
-          <div class="settings-section-divider"></div>
-          <div class="settings-section-title">Announcement Banner</div>
-          <p class="settings-section-sub">Show a message bar at the top of the public site.</p>
-
-          <div class="settings-toggles-row">
-            <label class="banner-toggle-row">
-              <span class="toggle-switch">
-                <input type="checkbox" id="b-enabled" />
-                <span class="toggle-track"><span class="toggle-knob"></span></span>
-              </span>
-              <span class="toggle-label">Enabled</span>
-            </label>
-            <label class="banner-toggle-row">
-              <span class="toggle-switch">
-                <input type="checkbox" id="b-dismissable" />
-                <span class="toggle-track"><span class="toggle-knob"></span></span>
-              </span>
-              <span class="toggle-label">Dismissable</span>
-            </label>
+          <!-- Card 1: Contact Info -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <span class="settings-card-title">Contact Info</span>
+              <p class="settings-card-sub">Shown in the Hours &amp; Contact section of the public site.</p>
+            </div>
+            <form id="contactForm">
+              <div class="field">
+                <label for="s-address">Address</label>
+                <input type="text" id="s-address" name="address" placeholder="123 Main Street, Your City, ST 00000" />
+              </div>
+              <div class="field">
+                <label for="s-phone">Phone</label>
+                <input type="tel" id="s-phone" name="phone" placeholder="(555) 123-4567" />
+              </div>
+              <div class="field">
+                <label for="s-email">Email</label>
+                <input type="email" id="s-email" name="email" placeholder="hello@joelleslounge.com" />
+              </div>
+              <div class="settings-form__actions">
+                <button type="submit" class="btn-gold">Save</button>
+                <span class="save-msg" id="contactMsg"></span>
+              </div>
+            </form>
           </div>
 
-          <div class="field">
-            <label for="b-type">Banner type</label>
-            <select id="b-type">
-              <option value="info">Info (gold)</option>
-              <option value="promo">Promo (teal)</option>
-              <option value="warning">Warning (amber)</option>
-            </select>
+          <!-- Card 2: Announcement Banner -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <span class="settings-card-title">Announcement Banner</span>
+              <p class="settings-card-sub">Show a dismissable message bar at the top of the public site.</p>
+            </div>
+            <form id="bannerForm">
+              <div class="settings-toggles-row">
+                <label class="banner-toggle-row">
+                  <span class="toggle-switch">
+                    <input type="checkbox" id="b-enabled" />
+                    <span class="toggle-track"><span class="toggle-knob"></span></span>
+                  </span>
+                  <span class="toggle-label">Enabled</span>
+                </label>
+                <label class="banner-toggle-row">
+                  <span class="toggle-switch">
+                    <input type="checkbox" id="b-dismissable" />
+                    <span class="toggle-track"><span class="toggle-knob"></span></span>
+                  </span>
+                  <span class="toggle-label">Dismissable</span>
+                </label>
+              </div>
+              <div class="field">
+                <label for="b-type">Banner type</label>
+                <select id="b-type">
+                  <option value="info">Info (gold)</option>
+                  <option value="promo">Promo (teal)</option>
+                  <option value="warning">Warning (amber)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="b-text">Message text</label>
+                <textarea id="b-text" rows="3" placeholder="e.g. Join us this Friday for live jazz from 7 PM!"></textarea>
+              </div>
+              <div class="settings-form__actions">
+                <button type="submit" class="btn-gold">Save</button>
+                <span class="save-msg" id="bannerMsg"></span>
+              </div>
+            </form>
           </div>
 
-          <div class="field">
-            <label for="b-text">Message text</label>
-            <textarea id="b-text" rows="2" placeholder="e.g. Join us this Friday for live jazz from 7 PM!"></textarea>
+          <!-- Card 3: Toast Integration (full width) -->
+          <div class="settings-card settings-card--full">
+            <div class="settings-card-header">
+              <span class="settings-card-title">Toast Integration</span>
+              <p class="settings-card-sub">Connect your Toast POS account to display live sales data on the dashboard.</p>
+            </div>
+            <form id="toastConfigForm">
+              <div class="settings-toast-grid">
+                <div class="field">
+                  <label for="t-apiBaseUrl">API Base URL</label>
+                  <input type="text" id="t-apiBaseUrl" placeholder="https://ws-api.toasttab.com" />
+                </div>
+                <div class="field">
+                  <label for="t-restaurantGuid">Restaurant GUID</label>
+                  <input type="text" id="t-restaurantGuid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                </div>
+                <div class="field">
+                  <label for="t-clientId">Client ID</label>
+                  <input type="text" id="t-clientId" placeholder="Your Toast API client ID" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="t-clientSecret">Client Secret</label>
+                  <input type="password" id="t-clientSecret" placeholder="Leave blank to keep existing secret" autocomplete="new-password" />
+                </div>
+              </div>
+              <div class="settings-form__actions">
+                <button type="submit" class="btn-gold">Save</button>
+                <span class="save-msg" id="toastConfigMsg"></span>
+              </div>
+            </form>
           </div>
 
-          <div class="settings-form__actions">
-            <button type="submit" class="btn-gold">Save Changes</button>
-            <span class="save-msg" id="settingsMsg"></span>
-          </div>
-        </form>
+        </div>
       </section>
 
       <!-- ── ABOUT PAGE PANEL ────────────────────── -->
@@ -679,6 +811,20 @@
     <div class="modal-card modal-card--wide">
       <h2 class="modal-title" id="editRoleModalTitle">Edit Permissions</h2>
       <p class="modal-sub" id="editRoleModalSub"></p>
+
+      <!-- System Administrator toggle -->
+      <div class="role-sysadmin-row">
+        <div class="role-sysadmin-info">
+          <span class="role-sysadmin-label">System Administrator</span>
+          <span class="role-sysadmin-desc">Full access to everything — identical to the built-in admin account. Overrides all individual settings below.</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="roleIsSystemAdmin" />
+          <span class="toggle-track"><span class="toggle-knob"></span></span>
+        </label>
+      </div>
+      <div class="role-sysadmin-divider"></div>
+
       <div class="role-perms-grid" id="editRolePermsGrid"></div>
       <p class="modal-error" id="editRoleError"></p>
       <div class="modal-actions">
